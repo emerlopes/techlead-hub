@@ -1,0 +1,9 @@
+{
+  "extends": "@tlh/config/tsconfig.node.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "dist",
+    "declaration": false
+  },
+  "include": ["src"]
+}

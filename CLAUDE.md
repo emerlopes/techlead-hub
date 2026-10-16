@@ -9,29 +9,45 @@ Aplicação pessoal para um Tech Lead acompanhar atividades próprias, entregas 
 
 ## Stack e comandos
 
-Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS v4 · componentes no padrão shadcn/ui · `lucide-react` · `class-variance-authority` + `tailwind-merge`.
+Monorepo **pnpm** (via Corepack). Web: Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS v4 · componentes no padrão shadcn/ui · `lucide-react` · `class-variance-authority` + `tailwind-merge`. API: NestJS 11 · Prisma 7 · PostgreSQL · Zod. Worker: BullMQ + Redis. Testes: Vitest. Decisões da fundação em `docs/architecture/fundacao-tecnica.md`.
 
 ```bash
-npm run dev     # http://localhost:3000 (showcase em /design-system)
-npm run lint
-npx tsc --noEmit
-npm run build
+pnpm env:init          # cria .env a partir de .env.example
+pnpm db:up             # PostgreSQL + Redis (Docker)
+pnpm db:deploy         # aplica migrations
+pnpm dev               # web :3000 (showcase em /design-system), API :4000, worker
+pnpm lint
+pnpm typecheck
+pnpm test              # unitários
+pnpm test:integration  # API contra o banco de testes (DATABASE_URL_TEST)
+pnpm build
+docker compose up --build   # stack completa
 ```
 
-Antes de dizer que algo está pronto: `tsc`, `lint` e `build` passando; para mudanças de UI, conferir no navegador em tema claro, escuro e largura mobile (sem scroll horizontal).
+Antes de dizer que algo está pronto: `typecheck`, `lint`, `test` e `build` passando (e `test:integration` quando mexer na API ou no schema); para mudanças de UI, conferir no navegador em tema claro, escuro e largura mobile (sem scroll horizontal).
 
 ## Estrutura
 
-| Pasta                         | Conteúdo                                                                                      |
-| ----------------------------- | --------------------------------------------------------------------------------------------- |
-| `app/`                        | Rotas (App Router). `globals.css` contém **todos** os tokens.                                 |
-| `components/ui/`              | Primitivas genéricas (Button, Badge, Card, Input, Table, Tabs, Alert…). Sem regra de negócio. |
-| `components/domain/`          | Componentes com regra de produto (StatusBadge, DateDelta, CapacityBar, FocusCard…).           |
-| `lib/design-system/status.ts` | Mapa único de enums do domínio → rótulo pt-BR, tom e ícone.                                   |
-| `lib/utils.ts`                | `cn()` para compor classes.                                                                   |
-| `docs/`                       | Especificação e design system.                                                                |
+| Pasta                                        | Conteúdo                                                                                      |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `apps/web/src/app/`                          | Rotas (App Router). `globals.css` contém **todos** os tokens. `(auth)` = setup/login; `(app)` = shell autenticado. |
+| `apps/web/src/components/ui/`                | Primitivas genéricas (Button, Badge, Card, Input, Table, Tabs, Alert…). Sem regra de negócio. |
+| `apps/web/src/components/domain/`            | Componentes com regra de produto (StatusBadge, DateDelta, CapacityBar, FocusCard…).           |
+| `apps/web/src/components/app/`               | Peças do shell da aplicação (Brand, AppNav, PageHeader, ApiUnavailable, FormError).          |
+| `apps/web/src/features/<módulo>/`            | Formulários e componentes de um módulo (identity, workspace…).                               |
+| `apps/web/src/lib/api/`                      | Cliente da API: `server.ts` (Server Components), `client.ts` + `use-api-form.ts` (navegador). |
+| `apps/web/src/lib/design-system/status.ts`   | Mapa único de enums do domínio → rótulo pt-BR, tom e ícone.                                   |
+| `apps/web/src/proxy.ts`                      | Repasse de `/api/v1` para a API e checagem otimista de sessão.                                |
+| `apps/api/src/modules/<módulo>/`             | Módulos do backend (§34): identity, workspace, audit, health.                                 |
+| `apps/api/src/common/`, `infrastructure/`    | Guards, pipes, filtro de erros; config (Zod) e Prisma.                                        |
+| `apps/api/prisma/`                           | `schema.prisma` e migrations versionadas.                                                     |
+| `apps/planning-worker/`                      | Worker BullMQ da fila `planning`.                                                             |
+| `packages/shared-contracts/`                 | Schemas Zod e tipos compartilhados (contratos da API, erros, constantes HTTP).               |
+| `packages/config/`                           | `tsconfig` base e ESLint dos pacotes Node.                                                    |
+| `infrastructure/`                            | Dockerfiles, init do PostgreSQL, scripts.                                                     |
+| `docs/`                                      | Especificação, design system e arquitetura.                                                   |
 
-Alias de import: `@/*` aponta para a raiz.
+Alias de import na web: `@/*` aponta para `apps/web/src`.
 
 ## Regras obrigatórias
 
@@ -44,15 +60,16 @@ Alias de import: `@/*` aponta para a raiz.
 - Todo botão tem efeito de clique: use `<Button>` (já inclui) ou, em qualquer outro elemento clicável com aparência de botão, a utility `pressable`. Nunca crie `<button>` estilizado à mão sem ela.
 - Todo status combina ícone + texto (nunca só cor). Botões só-ícone têm `aria-label`; ícones decorativos `aria-hidden`.
 - Toda tela tem estados de carregamento (`Skeleton`), vazio (`EmptyState`) e falha (`Alert tone="danger"`).
-- Novo token, variante ou componente reutilizável → atualize também `docs/design-system.md` e adicione um exemplo em `app/design-system/page.tsx`.
+- Novo token, variante ou componente reutilizável → atualize também `docs/design-system.md` e adicione um exemplo em `apps/web/src/app/design-system/page.tsx`.
 
 ### 2. Não duplique código
 
-- Antes de criar algo, procure em `components/ui`, `components/domain` e `lib/`. Se existe algo próximo, **estenda** (nova variante via `cva`, nova prop) em vez de copiar.
+- Antes de criar algo, procure em `components/ui`, `components/domain`, `components/app`, `lib/` e `packages/shared-contracts`. Se existe algo próximo, **estenda** (nova variante via `cva`, nova prop) em vez de copiar.
 - Padrão repetido em 2+ lugares vira componente/função compartilhada. Primitiva genérica → `components/ui`; com regra de negócio → `components/domain`; lógica pura → `lib/`.
-- Formatação (datas, horas, percentuais) e cálculos de domínio (capacidade, utilização, saúde) ficam em um único lugar e são importados — nunca reimplementados inline.
+- Formatação (datas, horas, percentuais — `lib/format.ts`) e cálculos de domínio (capacidade, utilização, saúde) ficam em um único lugar e são importados — nunca reimplementados inline.
+- Validação de entrada usa os schemas de `@tlh/shared-contracts` dos dois lados (web e API); não duplique regras de validação.
 - Classes condicionais com `cn()`; variantes com `cva`. Sem strings de classe dinâmicas (`` `bg-${tone}` ``) — o Tailwind não as detecta; use um mapa estático.
-- Componentes `shadcn` novos: `npx shadcn add <nome>` (o `components.json` já está configurado) e ajuste para os tokens do projeto.
+- Componentes `shadcn` novos: `pnpm dlx shadcn add <nome>` dentro de `apps/web` (o `components.json` já está configurado) e ajuste para os tokens do projeto.
 
 ### 3. Regras de produto que a UI deve respeitar
 
@@ -68,5 +85,7 @@ Alias de import: `@/*` aponta para a raiz.
 - Datas e números formatados com `Intl` em `pt-BR`.
 - Server Components por padrão; `"use client"` só quando houver estado/efeito/evento.
 - TypeScript estrito: sem `any`; tipos de enum derivados de `status.ts` (`HealthStatus`, `Priority`…).
+- API: toda rota exige sessão, exceto `@Public()`; mutações exigem o cabeçalho CSRF (`apiMutation` já envia); erros sempre no formato `ApiError`; alterações relevantes auditadas via `AuditService` na mesma transação; entidades mutáveis com `version` (controle otimista).
+- Schema do banco: altere `schema.prisma` e gere migration nova (`pnpm db:migrate`); nunca edite migration já aplicada.
 - Comentários só quando explicam o _porquê_ ou citam a regra da especificação.
 - Não commitar sem pedido explícito.

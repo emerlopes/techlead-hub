@@ -1,0 +1,26 @@
+{
+  "name": "@tlh/planning-worker",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/main.js",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "bullmq": "^5.30.0",
+    "ioredis": "^5.4.0",
+    "zod": "^4.1.0"
+  },
+  "devDependencies": {
+    "@tlh/config": "workspace:*",
+    "@types/node": "^22.10.0",
+    "eslint": "^9",
+    "tsx": "^4.19.0",
+    "typescript": "~5.9.0",
+    "vitest": "^4.1.0"
+  }
+}

@@ -1,0 +1,86 @@
+// Fundação técnica (Etapa 1, §54): identidade, sessão, workspace e auditoria.
+// Convenções (§35): UUID nas entidades, timestamptz para instantes, `version` para
+// controle otimista nas entidades mutáveis, nomes físicos em snake_case.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Workspace {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @db.VarChar(80)
+  /// Fuso explícito usado em calendários e datas de negócio (§35.3).
+  timezone  String   @db.VarChar(64)
+  locale    String   @default("pt-BR") @db.VarChar(16)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  version   Int      @default(1)
+
+  users       User[]
+  auditEvents AuditEvent[]
+
+  @@map("workspaces")
+}
+
+model User {
+  id               String    @id @default(uuid()) @db.Uuid
+  workspaceId      String    @map("workspace_id") @db.Uuid
+  name             String    @db.VarChar(80)
+  email            String    @unique @db.VarChar(254)
+  /// Hash Argon2id em formato PHC (§44.2). Nunca a senha.
+  passwordHash     String    @map("password_hash")
+  /// Único usuário proprietário (§44.1): a constraint impede um segundo setup concorrente.
+  isOwner          Boolean   @default(true) @unique @map("is_owner")
+  failedLoginCount Int       @default(0) @map("failed_login_count")
+  lockedUntil      DateTime? @map("locked_until") @db.Timestamptz(3)
+  lastLoginAt      DateTime? @map("last_login_at") @db.Timestamptz(3)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  version          Int       @default(1)
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  sessions  Session[]
+
+  @@index([workspaceId])
+  @@map("users")
+}
+
+model Session {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  /// SHA-256 do token opaco do cookie; o token em si nunca é persistido.
+  tokenHash  String    @unique @map("token_hash") @db.Char(64)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  lastSeenAt DateTime  @default(now()) @map("last_seen_at") @db.Timestamptz(3)
+  expiresAt  DateTime  @map("expires_at") @db.Timestamptz(3)
+  revokedAt  DateTime? @map("revoked_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@map("sessions")
+}
+
+/// Trilha de auditoria (§34.18, RNF-022). Somente inserção.
+model AuditEvent {
+  id          String   @id @default(uuid()) @db.Uuid
+  workspaceId String?  @map("workspace_id") @db.Uuid
+  actorUserId String?  @map("actor_user_id") @db.Uuid
+  action      String   @db.VarChar(64)
+  entityType  String   @map("entity_type") @db.VarChar(64)
+  entityId    String?  @map("entity_id") @db.Uuid
+  metadata    Json?
+  occurredAt  DateTime @default(now()) @map("occurred_at") @db.Timestamptz(3)
+
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+
+  @@index([workspaceId, occurredAt])
+  @@index([entityType, entityId])
+  @@map("audit_events")
+}
