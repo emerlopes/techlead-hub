@@ -6,6 +6,7 @@ export const actionLabels: Record<string, string> = {
   "refinement.updated": "Refinamento atualizado",
   "sprint.created": "Sprint criada",
   "sprint.updated": "Sprint atualizada",
+  "sprint.started": "Sprint iniciada",
   "sprint.closed": "Sprint encerrada",
   "sprint.item_added": "Item planejado",
   "sprint.item_removed": "Item removido do escopo",

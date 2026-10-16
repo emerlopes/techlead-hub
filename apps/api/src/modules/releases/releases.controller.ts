@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query } fr
 import {
   addReleaseItemSchema,
   createMilestoneSchema,
+  type CreateReleaseResult,
   createReleaseSchema,
   type Release,
   type ReleaseDetail,
@@ -33,7 +34,7 @@ export class ReleasesController {
   create(
     @CurrentAuth() auth: AuthContext,
     @Body(new ZodValidationPipe(createReleaseSchema)) body: z.output<typeof createReleaseSchema>,
-  ): Promise<ReleaseDetail> {
+  ): Promise<CreateReleaseResult> {
     return this.releases.create(auth, body);
   }
 

@@ -225,7 +225,7 @@ describe("Acompanhamento de entregas (integração)", () => {
       const done = await createItem({ externalKey: "PAY-1" });
       const pending = await createItem({ externalKey: "PAY-2" });
       await api.post(`/sprints/${sprint.id}/items`, { workItemId: done.id }).expect(200);
-      await api.patch(`/sprints/${sprint.id}`, { status: "ACTIVE", version: 1 }).expect(200);
+      await api.post(`/sprints/${sprint.id}/start`, { name: "Sprint 1", goal: "Entregar o escopo planejado", version: 1 }).expect(200);
       const added = await api.post(`/sprints/${sprint.id}/items`, { workItemId: pending.id }).expect(200);
       expect(added.body.items.map((i: { scopeType: string }) => i.scopeType)).toEqual(["ORIGINAL", "ADDED"]);
       await api.patch(`/work-items/${done.id}`, { executionStatus: "DONE", version: 1 }).expect(200);
@@ -386,7 +386,7 @@ describe("Acompanhamento de entregas (integração)", () => {
       expect((await api.get("/journal?category=INCIDENT").expect(200)).body.total).toBe(1);
 
       // O diário continua disponível após o encerramento da sprint (§11.6).
-      await api.patch(`/sprints/${sprint.id}`, { status: "ACTIVE", version: 1 }).expect(200);
+      await api.post(`/sprints/${sprint.id}/start`, { name: "Sprint 1", goal: "Entregar o escopo planejado", version: 1 }).expect(200);
       await api.post(`/sprints/${sprint.id}/close`, { version: 2 }).expect(200);
       expect((await api.get(`/journal?sprintId=${sprint.id}`).expect(200)).body.total).toBe(1);
 
@@ -409,7 +409,7 @@ describe("Acompanhamento de entregas (integração)", () => {
       await api.post("/risks", { title: "Bloqueio", type: "IMPEDIMENT", links: { workItemIds: [blocked.id], teamIds: [pay.id] } }).expect(201);
       const sprint = (await api.post("/sprints", { teamId: pay.id, name: "Sprint 1", startDate: today(), endDate: addDays(today(), 13) }).expect(201)).body;
       await api.post(`/sprints/${sprint.id}/items`, { workItemId: blocked.id }).expect(200);
-      await api.patch(`/sprints/${sprint.id}`, { status: "ACTIVE", version: 1 }).expect(200);
+      await api.post(`/sprints/${sprint.id}/start`, { name: "Sprint 1", goal: "Entregar o escopo planejado", version: 1 }).expect(200);
       // A mesma entrega em duas releases conta uma vez.
       for (const name of ["R1", "R2"]) {
         const release = (await api.post("/releases", { projectId: chk.id, name }).expect(201)).body;

@@ -584,6 +584,8 @@ model Sprint {
   startDate   DateTime     @map("start_date") @db.Date
   endDate     DateTime     @map("end_date") @db.Date
   status      SprintStatus @default(PLANNED)
+  /// Release que gerou a sprint automaticamente; `null` = criada manualmente.
+  releaseId   String?      @map("release_id") @db.Uuid
   closedAt    DateTime?    @map("closed_at") @db.Timestamptz(3)
   createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt   DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
@@ -591,6 +593,7 @@ model Sprint {
 
   workspace         Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
   team              Team               @relation(fields: [teamId], references: [id], onDelete: Restrict)
+  release           Release?           @relation(fields: [releaseId], references: [id], onDelete: Restrict)
   memberships       SprintMembership[]
   intendedRefinings Refinement[]
   riskLinks         RiskLink[]
@@ -598,6 +601,7 @@ model Sprint {
 
   @@index([teamId, startDate])
   @@index([workspaceId, status])
+  @@index([releaseId])
   @@map("sprints")
 }
 
@@ -627,6 +631,10 @@ model Release {
   projectId     String        @map("project_id") @db.Uuid
   name          String        @db.VarChar(80)
   description   String?       @db.VarChar(2000)
+  /// Início do calendário de sprints gerado no cadastro.
+  startDate     DateTime?     @map("start_date") @db.Date
+  /// Duração de cada sprint gerada, em dias úteis (seg–sex).
+  sprintLength  Int?          @map("sprint_length_days")
   committedDate DateTime?     @map("committed_date") @db.Date
   /// Previsão manual; a calculada chega com o motor de previsibilidade (§25).
   forecastDate  DateTime?     @map("forecast_date") @db.Date
@@ -641,6 +649,7 @@ model Release {
   memberships     ReleaseMembership[]
   milestones      ReleaseMilestone[]
   forecastHistory ReleaseForecastHistory[]
+  sprints         Sprint[]
   riskLinks       RiskLink[]
   journalLinks    JournalLink[]
 

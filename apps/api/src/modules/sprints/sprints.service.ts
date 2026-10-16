@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import {
   type addSprintItemSchema,
   type closeSprintSchema,
+  type startSprintSchema,
   type ContextLoad,
   type createSprintSchema,
   isClosedExecution,
@@ -43,7 +44,10 @@ const CLOSING_EXITS: SprintExitReason[] = ["COMPLETED", "NOT_COMPLETED"];
 const OPEN_SPRINT: SprintStatus[] = ["PLANNED", "ACTIVE"];
 const STATUS_RANK: Record<SprintStatus, number> = { ACTIVE: 0, PLANNED: 1, CLOSED: 2, CANCELLED: 3 };
 
-const sprintInclude = { team: { select: refSelect } } satisfies Prisma.SprintInclude;
+const sprintInclude = {
+  team: { select: refSelect },
+  release: { select: { id: true, name: true } },
+} satisfies Prisma.SprintInclude;
 type SprintRow = Prisma.SprintGetPayload<{ include: typeof sprintInclude }>;
 
 const emptyLoad: ContextLoad = {
@@ -167,7 +171,6 @@ export class SprintsService {
     if (closed && (status || startDate || endDate)) {
       throw ruleViolation("Sprints encerradas ou canceladas mantêm período e situação; o histórico é preservado.");
     }
-    if (status === "PLANNED" && current.status === "ACTIVE") throw ruleViolation("Uma sprint iniciada não volta a planejada.", "status");
     const start = startDate ?? toIsoDate(current.startDate);
     const end = endDate ?? toIsoDate(current.endDate);
     if (start && end && end < start) throw ruleViolation("O fim não pode ser antes do início.", "endDate");
@@ -198,6 +201,34 @@ export class SprintsService {
             fromVersion: version,
             ...(statusChanged && { fromStatus: current.status, toStatus: status }),
           },
+        },
+        tx,
+      );
+    });
+    return this.get(auth, id);
+  }
+
+  /**
+   * `POST /sprints/{id}/start`: inicia a sprint planejada confirmando nome e objetivo (§11.2). Sprints
+   * geradas pela release nascem com nome provisório e sem objetivo; é aqui que o Tech Lead os define.
+   */
+  async start(auth: AuthContext, id: string, input: z.output<typeof startSprintSchema>): Promise<SprintDetail> {
+    const current = await this.find(auth, id);
+    if (current.status !== "PLANNED") throw ruleViolation("Só sprints planejadas podem ser iniciadas.", "status");
+    await this.prisma.$transaction(async (tx) => {
+      const result = await tx.sprint.updateMany({
+        where: { id, workspaceId: auth.workspaceId, version: input.version },
+        data: { name: input.name, goal: input.goal, status: "ACTIVE", version: { increment: 1 } },
+      });
+      if (result.count === 0) throw versionConflict(ENTITY);
+      await this.audit.record(
+        {
+          action: "sprint.started",
+          entityType: "sprint",
+          entityId: id,
+          workspaceId: auth.workspaceId,
+          actorUserId: auth.userId,
+          metadata: { fields: ["name", "goal"], fromVersion: input.version, fromStatus: "PLANNED", toStatus: "ACTIVE" },
         },
         tx,
       );
@@ -364,6 +395,7 @@ export class SprintsService {
         startDate: toIsoDate(row.startDate) ?? "",
         endDate: toIsoDate(row.endDate) ?? "",
         status: row.status,
+        release: row.release,
         closedAt: toIsoOrNull(row.closedAt),
         counts: {
           total: own.length,

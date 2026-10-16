@@ -10,6 +10,7 @@ export * from "./journal";
 export * from "./organization";
 export * from "./releases";
 export * from "./risks";
+export * from "./sprint-calendar";
 export * from "./sprints";
 export * from "./task-rules";
 export * from "./tasks";

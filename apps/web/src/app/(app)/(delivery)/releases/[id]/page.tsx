@@ -24,21 +24,26 @@ import { RiskListCard } from "@/features/risks/risk-list-card";
 import { RemoveFromScopeButton } from "@/features/work-items/remove-from-scope-button";
 import { loadOpenWorkItems } from "@/lib/api/options";
 import { loadApi, requireMe, withQuery } from "@/lib/api/server";
-import { healthStatus, releaseRequirement, releaseStatus } from "@/lib/design-system/status";
+import { healthStatus, releaseRequirement, releaseStatus, sprintStatus } from "@/lib/design-system/status";
 import { formatBusinessDate, formatDateTime } from "@/lib/format";
+import { flatParams } from "@/lib/search-params";
 
 export const metadata: Metadata = { title: "Release · Tech Lead Hub" };
 
-export default function ReleasePage({ params }: PageProps<"/releases/[id]">) {
+export default function ReleasePage({ params, searchParams }: PageProps<"/releases/[id]">) {
   return (
     <Suspense fallback={<DetailSkeleton />}>
-      <ReleaseView params={params} />
+      <ReleaseView params={params} searchParams={searchParams} />
     </Suspense>
   );
 }
 
-async function ReleaseView({ params }: Pick<PageProps<"/releases/[id]">, "params">) {
+async function ReleaseView({ params, searchParams }: PageProps<"/releases/[id]">) {
   const { id } = await params;
+  // Resultado da geração de sprints, repassado pelo cadastro.
+  const query = flatParams(await searchParams);
+  const generated = Number(query.generated);
+  const skipped = Number(query.skipped ?? 0);
   const [release, me, projects, candidates, risks, journal] = await Promise.all([
     loadApi(`/releases/${id}`, releaseDetailSchema),
     requireMe(),
@@ -70,6 +75,14 @@ async function ReleaseView({ params }: Pick<PageProps<"/releases/[id]">, "params
         description={r.description ?? undefined}
         actions={<ReleaseActions release={r} />}
       />
+
+      {query.generated !== undefined && Number.isInteger(generated) && (
+        <Alert tone={generated > 0 ? "success" : "warning"} title={`${generated} sprint(s) planejada(s) gerada(s) para os times do projeto`}>
+          {skipped > 0
+            ? `${skipped} período(s) pulado(s) porque o time já tinha sprint aberta nas mesmas datas.`
+            : "Defina nome e objetivo de cada sprint ao iniciá-la."}
+        </Alert>
+      )}
 
       {r.health === "UNKNOWN" && (
         <Alert tone="info" title="Saúde indeterminada">
@@ -179,6 +192,36 @@ async function ReleaseView({ params }: Pick<PageProps<"/releases/[id]">, "params
                   r.teams.map((t) => <ContextChip key={t.id} code={t.code} name={t.name} />)
                 )}
               </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Sprints geradas</CardTitle>
+              <CardDescription>
+                {r.sprintLengthDays
+                  ? `${r.sprintLengthDays} dias úteis cada, a partir de ${r.startDate ? formatBusinessDate(r.startDate) : "—"}.`
+                  : "A release foi cadastrada sem calendário de sprints."}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {r.generatedSprints.length === 0 ? (
+                <p className="text-xs text-muted-foreground">Nenhuma sprint gerada.</p>
+              ) : (
+                <ul className="flex flex-col divide-y divide-border">
+                  {r.generatedSprints.map((sprint) => (
+                    <li key={sprint.id} className="flex flex-wrap items-center gap-1.5 py-2 first:pt-0 last:pb-0">
+                      <ContextChip code={sprint.team.code} name={sprint.team.name} />
+                      <Link href={`/sprints/${sprint.id}`} className="min-w-0 text-sm font-medium break-words hover:underline">
+                        {sprint.name}
+                      </Link>
+                      <StatusBadge meta={sprintStatus[sprint.status]} size="sm" variant="dot" />
+                      <span className="text-2xs text-muted-foreground tabular">
+                        {formatBusinessDate(sprint.startDate)} – {formatBusinessDate(sprint.endDate)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </CardContent>
           </Card>
           <Card>

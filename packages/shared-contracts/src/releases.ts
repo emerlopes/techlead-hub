@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { contextRefSchema, historyEntrySchema, optionalIsoDate, optionalText, versionSchema, workItemRefSchema } from "./common";
-import { healthStatuses } from "./delivery-rules";
+import { healthStatuses, sprintStatuses } from "./delivery-rules";
+import { SPRINT_LENGTH_MAX, SPRINT_LENGTH_MIN } from "./sprint-calendar";
 import { workItemSchema } from "./work-items";
 
 /* -------------------------------------------------------------------------- */
@@ -26,6 +27,9 @@ export const releaseSchema = z.object({
   project: contextRefSchema,
   name: z.string(),
   description: z.string().nullable(),
+  /** Calendário de sprints definido no cadastro: início e duração em dias úteis. */
+  startDate: z.iso.date().nullable(),
+  sprintLengthDays: z.number().int().nullable(),
   /** Compromisso e previsão armazenados separadamente (§12.5). */
   committedDate: z.iso.date().nullable(),
   forecastDate: z.iso.date().nullable(),
@@ -72,6 +76,17 @@ export const releaseDetailSchema = releaseSchema.extend({
     }),
   ),
   milestones: z.array(milestoneSchema),
+  /** Sprints geradas no cadastro para os times do projeto. */
+  generatedSprints: z.array(
+    z.object({
+      id: z.uuid(),
+      name: z.string(),
+      team: contextRefSchema,
+      startDate: z.iso.date(),
+      endDate: z.iso.date(),
+      status: z.enum(sprintStatuses),
+    }),
+  ),
   /** Evolução de compromisso e previsão (§12.5). */
   forecastHistory: z.array(
     z.object({
@@ -94,9 +109,39 @@ export const createReleaseSchema = z
     description: optionalText(2000),
     committedDate: optionalIsoDate,
     forecastDate: optionalIsoDate,
+    /** Início do calendário de sprints; hoje (fuso do workspace) quando omitido. */
+    startDate: optionalIsoDate,
+    /** Gera sprints planejadas de N dias úteis para cada time do projeto até o prazo comprometido. */
+    sprintLengthDays: z
+      .number({ error: "Informe um número inteiro de dias." })
+      .int("Informe um número inteiro de dias.")
+      .min(SPRINT_LENGTH_MIN, `Use ao menos ${SPRINT_LENGTH_MIN} dia útil.`)
+      .max(SPRINT_LENGTH_MAX, `Use no máximo ${SPRINT_LENGTH_MAX} dias úteis.`)
+      .nullable()
+      .optional(),
   })
-  .strict();
+  .strict()
+  .refine((r) => !r.sprintLengthDays || Boolean(r.committedDate), {
+    message: "Informe o prazo comprometido para gerar as sprints.",
+    path: ["committedDate"],
+  })
+  .refine((r) => !r.startDate || !r.committedDate || r.startDate <= r.committedDate, {
+    message: "O início não pode ser depois do prazo comprometido.",
+    path: ["startDate"],
+  });
 export type CreateReleaseInput = z.input<typeof createReleaseSchema>;
+
+/** Resultado da geração de sprints no cadastro (exibido uma vez após criar). */
+export const sprintGenerationSchema = z.object({
+  created: z.number().int(),
+  skipped: z.number().int(),
+  teams: z.number().int(),
+});
+export type SprintGeneration = z.infer<typeof sprintGenerationSchema>;
+
+/** `POST /releases` devolve o detalhe + o resumo da geração (`null` sem duração de sprint). */
+export const createReleaseResultSchema = releaseDetailSchema.extend({ sprintGeneration: sprintGenerationSchema.nullable() });
+export type CreateReleaseResult = z.infer<typeof createReleaseResultSchema>;
 
 export const updateReleaseSchema = z
   .object({
