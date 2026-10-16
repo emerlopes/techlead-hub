@@ -179,7 +179,7 @@ Novos enums: adicionar ao arquivo com `satisfies StatusMap<string>`; marcar `ind
 | `JournalEntry` | Linha do tempo do Diário de Bordo com ícone por categoria e chips de contexto; `links` (navegáveis) e `actions` opcionais. |
 | `HealthIndicator` | Saúde de uma entrega: avaliação manual × calculada, guardadas separadamente (§14.4). A manual prevalece; ícone de mão (manual) ou calculadora (calculada); quando divergem, mostra “calculada: …”. Encerrada → nada. |
 | `WorkItemRow` | Item externo em linha compacta: chave em mono, link externo, saúde, execução, tipo, projeto/time, responsável, compromisso, sprint e `StaleIndicator`. `aside` para ações (retirar do escopo, obrigatório/opcional). |
-| `SprintSummary` | Sprint em linha (§5.2.4): time, período, concluídas/total, bloqueios e riscos, barra `delivery` e, em sprints abertas, `ContextLoadView` (capacidade planejada × demanda estimada). |
+| `SprintSummary` | Sprint em linha (§5.2.4): time, período, release de origem (“gerada por …”), concluídas/total, bloqueios e riscos, barra `delivery` e, em sprints abertas, `ContextLoadView` (capacidade planejada × demanda estimada). |
 | `ReleaseSummary` | Release em linha (§5.2.5): projeto, saúde, obrigatórios/opcionais, horas restantes dos obrigatórios estimados e quantos estão sem estimativa, times participantes (sem duplicar a release), riscos e `DateDelta`. |
 | `HistoryList` | Histórico a partir da auditoria: ação, data, transição de situação (`statusMap`) e campos alterados — nunca valores pessoais (§44.5). |
 | `LinkChips` | Contextos de um risco ou acontecimento (times, projetos, itens, sprints, releases, riscos, atividades), cada um com link e `aria-label`. |
@@ -215,6 +215,7 @@ Server Components leem a API com `loadApi(path, schema)` (`lib/api/server.ts`): 
 - **Listas de entregas:** `WorkItemRow` — item (chave externa em mono + link externo) · saúde (`HealthIndicator`) · execução · responsável · compromisso · verificação (`StaleIndicator`). Confiança entra com o motor de previsão.
 - **Acompanhamento desatualizado (§14.5):** `Alert tone="warning"` no detalhe + `StaleIndicator` nas linhas; “Registrar verificação” registra sem alterar dados.
 - **Escopo de sprint/release:** retirar do escopo usa `ConfirmButton` e mantém o item no histórico (“Saíram durante a sprint”, “retirados do escopo”).
+- **Iniciar sprint:** sprints planejadas mostram o cartão “Iniciar sprint” (âncora `#iniciar`, alvo do botão do cabeçalho) com nome pré-preenchido e objetivo obrigatórios; nas geradas pela release, a descrição avisa que o nome é provisório e liga à release.
 - **Exceções justificadas (§15.5):** marcar “pronta” com checklist incompleto exibe o campo de justificativa obrigatório; checklist completo só sugere (`Alert success` com ação), nunca aplica.
 - **Capacidade (§18–§21):** sem jornada a capacidade é desconhecida, nunca zero (`capacityIssueType.NO_SCHEDULE`, hachura); conflitos de alocação são sinalizados, não bloqueados (§20.5); período na URL (`?from&to`) com `PeriodFilter` (atalhos de 2/4/12 semanas, horizonte máximo §25.6). Indicadores de capacidade são de planejamento — nunca de desempenho (§10.4); evite rankings de pessoas.
 - **Percentuais em formulários:** o usuário digita 0–100 (“50” ou “50,5”); a API recebe a fração 0–1 (§35.7). Horas aceitam vírgula (`hoursOrNull`).

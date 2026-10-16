@@ -25,6 +25,11 @@ export function SprintSummary({ sprint, showCapacity = true }: { sprint: Sprint;
         <span className="text-2xs text-muted-foreground tabular">
           {formatBusinessDate(sprint.startDate)} – {formatBusinessDate(sprint.endDate)}
         </span>
+        {sprint.release && (
+          <Link href={`/releases/${sprint.release.id}`} className="text-2xs text-muted-foreground hover:underline">
+            gerada por {sprint.release.name}
+          </Link>
+        )}
       </div>
       <div className="flex flex-wrap items-center gap-3 text-2xs text-muted-foreground">
         <span className="tabular">

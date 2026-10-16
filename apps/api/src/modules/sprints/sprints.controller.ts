@@ -6,6 +6,7 @@ import {
   type Sprint,
   type SprintDetail,
   sprintListQuerySchema,
+  startSprintSchema,
   updateSprintSchema,
 } from "@tlh/shared-contracts";
 import type { z } from "zod";
@@ -47,6 +48,17 @@ export class SprintsController {
     @Body(new ZodValidationPipe(updateSprintSchema)) body: z.output<typeof updateSprintSchema>,
   ): Promise<SprintDetail> {
     return this.sprints.update(auth, id, body);
+  }
+
+  /** Acréscimo ao §36.8: iniciar confirmando nome e objetivo. */
+  @Post(":id/start")
+  @HttpCode(200)
+  start(
+    @CurrentAuth() auth: AuthContext,
+    @Param("id", UuidParamPipe) id: string,
+    @Body(new ZodValidationPipe(startSprintSchema)) body: z.output<typeof startSprintSchema>,
+  ): Promise<SprintDetail> {
+    return this.sprints.start(auth, id, body);
   }
 
   @Post(":id/close")

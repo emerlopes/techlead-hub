@@ -4,7 +4,10 @@ import {
   classifyHealth,
   isClosedExecution,
   type createMilestoneSchema,
+  type CreateReleaseResult,
   type createReleaseSchema,
+  planSprintCalendar,
+  type SprintGeneration,
   OPEN_RISK_STATUSES,
   type Release,
   type ReleaseDetail,
@@ -80,6 +83,7 @@ export class ReleasesService {
         },
         milestones: { orderBy: [{ targetDate: { sort: "asc", nulls: "last" } }, { createdAt: "asc" }] },
         forecastHistory: { orderBy: { changedAt: "desc" }, take: 100 },
+        sprints: { include: { team: { select: refSelect } }, orderBy: [{ startDate: "asc" }, { team: { code: "asc" } }] },
       },
     });
     if (!row) throw notFound(ENTITY);
@@ -118,6 +122,14 @@ export class ReleasesService {
         targetDate: toIsoDate(m.targetDate),
         completedAt: toIsoOrNull(m.completedAt),
       })),
+      generatedSprints: row.sprints.map((sprint) => ({
+        id: sprint.id,
+        name: sprint.name,
+        team: sprint.team,
+        startDate: toIsoDate(sprint.startDate) ?? "",
+        endDate: toIsoDate(sprint.endDate) ?? "",
+        status: sprint.status,
+      })),
       forecastHistory: row.forecastHistory.map((h) => ({
         id: h.id,
         changedAt: h.changedAt.toISOString(),
@@ -128,13 +140,36 @@ export class ReleasesService {
     };
   }
 
-  async create(auth: AuthContext, input: z.output<typeof createReleaseSchema>): Promise<ReleaseDetail> {
+  /**
+   * Cadastro da release. Com `sprintLengthDays`, gera em cada time participante do projeto (§9.1)
+   * sprints planejadas de N dias úteis, do início até cobrir o prazo comprometido. Períodos já
+   * ocupados por sprints abertas do time são pulados. Nome provisório; nome e objetivo são definidos
+   * ao iniciar (§11.2). Tudo na mesma transação.
+   */
+  async create(auth: AuthContext, input: z.output<typeof createReleaseSchema>): Promise<CreateReleaseResult> {
+    const { startDate, sprintLengthDays, ...fields } = input;
     await assertProjectsOpen(this.prisma, auth.workspaceId, [input.projectId], "projectId");
-    const id = await this.prisma.$transaction(async (tx) => {
+    const calendarStart = startDate ?? (sprintLengthDays ? await workspaceToday(this.prisma, auth.workspaceId) : null);
+    const teams = sprintLengthDays
+      ? await this.prisma.teamProject.findMany({
+          where: { projectId: input.projectId, endedAt: null, team: { status: "ACTIVE", workspaceId: auth.workspaceId } },
+          select: { teamId: true },
+        })
+      : [];
+    if (sprintLengthDays && teams.length === 0) {
+      throw ruleViolation(
+        "O projeto não tem times participantes ativos para receber as sprints. Associe um time ao projeto ou deixe a duração em branco.",
+        "sprintLengthDays",
+      );
+    }
+
+    const { id, generation } = await this.prisma.$transaction(async (tx) => {
       const release = await tx.release.create({
         data: {
-          ...input,
+          ...fields,
           workspaceId: auth.workspaceId,
+          startDate: fromIsoDate(calendarStart) ?? null,
+          sprintLength: sprintLengthDays ?? null,
           committedDate: fromIsoDate(input.committedDate) ?? null,
           forecastDate: fromIsoDate(input.forecastDate) ?? null,
         },
@@ -144,6 +179,15 @@ export class ReleasesService {
           data: { releaseId: release.id, actorUserId: auth.userId, committedDate: release.committedDate, forecastDate: release.forecastDate },
         });
       }
+      const generation =
+        sprintLengthDays && calendarStart && input.committedDate
+          ? await this.generateSprints(tx, auth, release, {
+              teamIds: teams.map((t) => t.teamId),
+              startDate: calendarStart,
+              untilDate: input.committedDate,
+              lengthDays: sprintLengthDays,
+            })
+          : null;
       await this.audit.record(
         {
           action: "release.created",
@@ -151,13 +195,63 @@ export class ReleasesService {
           entityId: release.id,
           workspaceId: auth.workspaceId,
           actorUserId: auth.userId,
-          metadata: { projectId: input.projectId },
+          metadata: { projectId: input.projectId, ...(generation && { sprintLengthDays, generatedSprints: generation.created }) },
         },
         tx,
       );
-      return release.id;
+      return { id: release.id, generation };
     });
-    return this.get(auth, id);
+    return { ...(await this.get(auth, id)), sprintGeneration: generation };
+  }
+
+  private async generateSprints(
+    tx: Prisma.TransactionClient,
+    auth: AuthContext,
+    release: { id: string; name: string },
+    plan: { teamIds: string[]; startDate: string; untilDate: string; lengthDays: number },
+  ): Promise<SprintGeneration> {
+    const occupied = await tx.sprint.findMany({
+      where: { teamId: { in: plan.teamIds }, status: { in: ["PLANNED", "ACTIVE"] } },
+      select: { teamId: true, startDate: true, endDate: true },
+    });
+    let created = 0;
+    let skipped = 0;
+    for (const teamId of plan.teamIds) {
+      const calendar = planSprintCalendar({
+        startDate: plan.startDate,
+        untilDate: plan.untilDate,
+        lengthDays: plan.lengthDays,
+        occupied: occupied
+          .filter((o) => o.teamId === teamId)
+          .map((o) => ({ startDate: toIsoDate(o.startDate) ?? "", endDate: toIsoDate(o.endDate) ?? "" })),
+      });
+      skipped += calendar.skipped.length;
+      for (const [index, period] of calendar.planned.entries()) {
+        const sprint = await tx.sprint.create({
+          data: {
+            workspaceId: auth.workspaceId,
+            teamId,
+            releaseId: release.id,
+            name: `Sprint ${index + 1} · ${release.name}`.slice(0, 80),
+            startDate: new Date(`${period.startDate}T00:00:00Z`),
+            endDate: new Date(`${period.endDate}T00:00:00Z`),
+          },
+        });
+        await this.audit.record(
+          {
+            action: "sprint.created",
+            entityType: "sprint",
+            entityId: sprint.id,
+            workspaceId: auth.workspaceId,
+            actorUserId: auth.userId,
+            metadata: { teamId, releaseId: release.id, generated: true },
+          },
+          tx,
+        );
+        created++;
+      }
+    }
+    return { created, skipped, teams: plan.teamIds.length };
   }
 
   async update(auth: AuthContext, id: string, input: z.output<typeof updateReleaseSchema>): Promise<ReleaseDetail> {
@@ -365,6 +459,8 @@ export class ReleasesService {
         project: row.project,
         name: row.name,
         description: row.description,
+        startDate: toIsoDate(row.startDate),
+        sprintLengthDays: row.sprintLength,
         committedDate,
         forecastDate,
         status: row.status,

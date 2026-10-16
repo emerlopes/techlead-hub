@@ -18,7 +18,7 @@ import { Alert } from "@/components/ui/alert";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { JournalCard } from "@/features/journal/journal-card";
 import { RiskListCard } from "@/features/risks/risk-list-card";
-import { SprintActions } from "@/features/sprints/sprint-actions";
+import { SprintActions, StartSprintForm } from "@/features/sprints/sprint-actions";
 import { SprintForm } from "@/features/sprints/sprint-form";
 import { AddSprintItemForm } from "@/features/sprints/sprint-scope";
 import { RemoveFromScopeButton } from "@/features/work-items/remove-from-scope-button";
@@ -74,6 +74,29 @@ async function SprintView({ params }: Pick<PageProps<"/sprints/[id]">, "params">
         actions={<SprintActions sprint={s} />}
       />
 
+      {s.status === "PLANNED" && (
+        <Card id="iniciar" className="scroll-mt-20">
+          <CardHeader>
+            <CardTitle>Iniciar sprint</CardTitle>
+            <CardDescription>
+              {s.release ? (
+                <>
+                  Gerada automaticamente pelo calendário de{" "}
+                  <Link href={`/releases/${s.release.id}`} className="font-medium text-foreground hover:underline">
+                    {s.release.name}
+                  </Link>
+                  , com nome provisório. Confirme o nome e defina o objetivo ao iniciar.
+                </>
+              ) : (
+                "Confirme o nome e defina o objetivo. Itens planejados até aqui ficam como escopo original (§11.5)."
+              )}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <StartSprintForm sprint={s} />
+          </CardContent>
+        </Card>
+      )}
       {s.status === "CLOSED" && (
         <Alert tone="info" title="Sprint encerrada">
           O encerramento registrou o resultado de cada item, sem concluir histórias (RN-011). Pendentes podem ser

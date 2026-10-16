@@ -1034,6 +1034,7 @@ const sampleSprint = {
   startDate: "2026-10-11",
   endDate: "2026-10-25",
   status: "ACTIVE",
+  release: { id: ref(7), name: "Checkout 3.0" },
   closedAt: null,
   counts: { total: 8, done: 3, blocked: 1, openRisks: 2 },
   capacity: {
@@ -1052,6 +1053,8 @@ const sampleRelease = {
   project: chk,
   name: "Checkout 3.0",
   description: null,
+  startDate: "2026-10-12",
+  sprintLengthDays: 10,
   committedDate: "2026-11-05",
   forecastDate: "2026-11-03",
   status: "IN_PROGRESS",

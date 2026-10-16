@@ -82,6 +82,28 @@ As exceções explícitas e auditadas são itens do checklist de prontidão e ma
 - **Contexto ativo:** novos vínculos exigem time ativo, projeto não arquivado e pessoa ativa
   (`common/context-rules.ts`, reaproveitado por atividades); vínculos antigos permanecem válidos.
 
+## Calendário de sprints gerado pela release
+
+Acréscimo pedido após a etapa (migration `20261016232442_release_sprint_calendar`).
+
+- O cadastro da release aceita **início** (padrão: hoje no fuso do workspace) e **duração da
+  sprint em dias úteis** (`sprintLengthDays`, 1–60, segunda a sexta). Com duração, o prazo
+  comprometido é obrigatório e o início não pode ser depois dele (constraints
+  `releases_sprint_length_range` e `releases_calendar_period`).
+- Na mesma transação, cada time com participação ativa no projeto (§9.1) recebe sprints
+  `PLANNED` consecutivas (`planSprintCalendar`, `shared-contracts/src/sprint-calendar.ts`) até cobrir
+  o prazo — a última pode terminar depois dele. Períodos que se sobrepõem a sprints abertas
+  (`PLANNED`/`ACTIVE`) do time são **pulados** sem deslocar a cadência. Teto de 52 sprints por time.
+  Projeto sem time participante → `422`.
+- As sprints guardam a release de origem (`sprints.release_id`) e nascem com nome provisório
+  (`Sprint N · <release>`) e sem objetivo. `POST /releases` devolve o detalhe com
+  `sprintGeneration: { created, skipped, teams }`.
+- **Iniciar** passou a ser `POST /sprints/{id}/start { name, goal, version }`: nome e objetivo são
+  obrigatórios e confirmados nesse momento (§11.2). `PATCH /sprints/{id}` não inicia mais (só
+  cancela); só sprints planejadas podem ser iniciadas.
+- Alterar início ou duração depois do cadastro não regenera sprints: o calendário é criado uma vez
+  e as sprints seguem editáveis individualmente.
+
 ## Contratos implementados (`/api/v1`, §36)
 
 | Método | Rota | Observação |
@@ -94,10 +116,11 @@ As exceções explícitas e auditadas são itens do checklist de prontidão e ma
 | `POST` | `/work-items/{id}/refinement/check-items`; `PATCH` `DELETE` `/refinement-check-items/{id}` | **Acréscimo**: checklist. |
 | `GET` | `/refinements` | **Acréscimo**: pipeline (`?teamId&projectId&sprintId`). |
 | `GET` `POST` | `/sprints` | `?status&teamId&projectId`. |
-| `GET` `PATCH` | `/sprints/{id}` | Iniciar/cancelar via `PATCH { status }`. |
+| `GET` `PATCH` | `/sprints/{id}` | Cancelar via `PATCH { status: CANCELLED }`. |
+| `POST` | `/sprints/{id}/start` | **Acréscimo**: iniciar confirmando nome e objetivo. |
 | `POST` | `/sprints/{id}/close` | Encerrar (§36.8). |
 | `POST` | `/sprints/{id}/items`, `/sprints/{id}/items/{workItemId}/remove` | **Acréscimo**: escopo e remanejamento. |
-| `GET` `POST` | `/releases`; `GET` `PATCH` `/releases/{id}` | `?status&projectId&teamId`. Encerrar = `PATCH { status: RELEASED \| CANCELLED }`. |
+| `GET` `POST` | `/releases`; `GET` `PATCH` `/releases/{id}` | `?status&projectId&teamId`. Cadastro com `startDate` e `sprintLengthDays` gera o calendário de sprints. Encerrar = `PATCH { status: RELEASED \| CANCELLED }`. |
 | `POST` `PATCH` | `/releases/{id}/items`, `/releases/{id}/items/{workItemId}`, `.../remove` | **Acréscimo**: escopo obrigatório/opcional. |
 | `POST` | `/releases/{id}/milestones`; `PATCH` `DELETE` `/release-milestones/{id}` | **Acréscimo**: marcos. |
 | `GET` `POST` | `/risks`; `GET` `PATCH` `/risks/{id}` | **Acréscimo** (o §36 não lista riscos). Resolver via `PATCH { status }`. |

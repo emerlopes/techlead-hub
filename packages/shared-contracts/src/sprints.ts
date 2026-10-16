@@ -24,6 +24,8 @@ export const sprintSchema = z.object({
   startDate: z.iso.date(),
   endDate: z.iso.date(),
   status: z.enum(sprintStatuses),
+  /** Release que gerou a sprint; `null` = criada manualmente. */
+  release: z.object({ id: z.uuid(), name: z.string() }).nullable(),
   closedAt: z.iso.datetime().nullable(),
   counts: sprintCountsSchema,
   /**
@@ -90,12 +92,22 @@ export const updateSprintSchema = z
     goal: optionalText(1000),
     startDate: businessDate.optional(),
     endDate: businessDate.optional(),
-    /** Iniciar ou cancelar. Encerrar usa `POST /sprints/{id}/close`. */
-    status: z.enum(["PLANNED", "ACTIVE", "CANCELLED"]).optional(),
+    /** Cancelar. Iniciar usa `POST /sprints/{id}/start` (nome e objetivo); encerrar, `/close`. */
+    status: z.literal("CANCELLED").optional(),
     version: versionSchema,
   })
   .strict();
 export type UpdateSprintInput = z.input<typeof updateSprintSchema>;
+
+/** Iniciar a sprint: nome e objetivo são confirmados neste momento (§11.2). */
+export const startSprintSchema = z
+  .object({
+    name: sprintNameSchema,
+    goal: z.string().trim().min(3, "Informe o objetivo da sprint.").max(1000, "Use no máximo 1000 caracteres."),
+    version: versionSchema,
+  })
+  .strict();
+export type StartSprintInput = z.input<typeof startSprintSchema>;
 
 export const closeSprintSchema = z.object({ version: versionSchema }).strict();
 export type CloseSprintInput = z.input<typeof closeSprintSchema>;

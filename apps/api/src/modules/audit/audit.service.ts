@@ -36,6 +36,7 @@ export type AuditAction =
   | "refinement_check_item.deleted"
   | "sprint.created"
   | "sprint.updated"
+  | "sprint.started"
   | "sprint.closed"
   | "sprint.item_added"
   | "sprint.item_removed"
