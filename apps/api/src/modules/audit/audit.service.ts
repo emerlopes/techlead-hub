@@ -8,11 +8,35 @@ export type AuditAction =
   | "auth.login_failed"
   | "auth.login_locked"
   | "auth.logout"
-  | "workspace.updated";
+  | "workspace.updated"
+  | "team.created"
+  | "team.updated"
+  | "project.created"
+  | "project.updated"
+  | "developer.created"
+  | "developer.updated"
+  | "team_project.created"
+  | "team_project.ended"
+  | "team_developer.created"
+  | "team_developer.ended"
+  | "task.created"
+  | "task.updated"
+  | "task.completed"
+  | "focus_queue.updated";
 
 export type AuditInput = {
   action: AuditAction;
-  entityType: "user" | "workspace" | "session";
+  entityType:
+    | "user"
+    | "workspace"
+    | "session"
+    | "team"
+    | "project"
+    | "developer"
+    | "team_project"
+    | "team_developer"
+    | "task"
+    | "focus_queue";
   entityId?: string;
   workspaceId?: string;
   actorUserId?: string;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatDateTime } from "./format";
+import { formatBusinessDate, formatDateTime, formatHours } from "./format";
 import { listTimeZones } from "./time-zones";
 
 describe("formatDateTime", () => {
@@ -16,5 +16,18 @@ describe("listTimeZones", () => {
     expect(zones).toContain("Etc/GMT+3");
     expect(zones).toContain("America/Sao_Paulo");
     expect([...zones].sort((a, b) => a.localeCompare(b))).toEqual(zones);
+  });
+});
+
+describe("formatBusinessDate", () => {
+  it("não desloca a data de negócio pelo fuso", () => {
+    expect(formatBusinessDate("2026-10-01")).toBe("01 de out");
+  });
+});
+
+describe("formatHours", () => {
+  it("usa vírgula decimal e travessão sem dado", () => {
+    expect(formatHours(1.5)).toBe("1,5 h");
+    expect(formatHours(null)).toBe("—");
   });
 });

@@ -2,6 +2,8 @@ import {
   Archive,
   Ban,
   CalendarClock,
+  CalendarDays,
+  CalendarRange,
   ChevronDown,
   ChevronUp,
   ChevronsUp,
@@ -16,11 +18,14 @@ import {
   ClockAlert,
   Equal,
   Eye,
+  FileSearch,
   Flame,
   Gavel,
   GitBranch,
+  History,
   Hourglass,
   Lightbulb,
+  Link2,
   LoaderCircle,
   Lock,
   LockOpen,
@@ -33,9 +38,14 @@ import {
   RotateCcw,
   Search,
   ShieldAlert,
+  Shapes,
   Sparkles,
   Trophy,
   TriangleAlert,
+  UserCheck,
+  Users,
+  UserX,
+  Wrench,
   type LucideIcon,
 } from "lucide-react";
 
@@ -124,6 +134,27 @@ export const taskStatus = {
 } satisfies StatusMap<string>;
 export type TaskStatus = keyof typeof taskStatus;
 
+/* Alerta de prazo (§5.2.2, §6.6) — independente da ordem da fila de foco */
+export const taskDueState = {
+  OVERDUE: { label: "Atrasada", tone: "danger", icon: ClockAlert },
+  DUE_TODAY: { label: "Vence hoje", tone: "attention", icon: CalendarClock },
+  DUE_SOON: { label: "Vence em breve", tone: "info", icon: CalendarDays },
+} satisfies StatusMap<string>;
+export type TaskDueState = keyof typeof taskDueState;
+
+/* Tipos de atividade (§6.3) */
+export const taskType = {
+  TECHNICAL: { label: "Técnica", tone: "personal", icon: Wrench },
+  FOLLOW_UP: { label: "Acompanhamento", tone: "personal", icon: Eye },
+  DECISION: { label: "Decisão", tone: "personal", icon: Gavel },
+  MEETING: { label: "Reunião", tone: "personal", icon: Users },
+  PLANNING: { label: "Planejamento", tone: "personal", icon: CalendarRange },
+  REVIEW: { label: "Revisão", tone: "personal", icon: FileSearch },
+  INVESTIGATION: { label: "Investigação", tone: "personal", icon: Search },
+  OTHER: { label: "Outra", tone: "neutral", icon: Shapes },
+} satisfies StatusMap<string>;
+export type TaskType = keyof typeof taskType;
+
 /* Prioridade pessoal (§6.5) — independente da criticidade da entrega (RN-004) */
 export const priority = {
   CRITICAL: { label: "Crítica", tone: "danger", icon: ChevronsUp },
@@ -136,6 +167,25 @@ export type Priority = keyof typeof priority;
 /* -------------------------------------------------------------------------- */
 /* Organização                                                                */
 /* -------------------------------------------------------------------------- */
+export const teamStatus = {
+  ACTIVE: { label: "Ativo", tone: "success", icon: Play },
+  INACTIVE: { label: "Inativo", tone: "neutral", icon: CircleSlash },
+} satisfies StatusMap<string>;
+export type TeamStatus = keyof typeof teamStatus;
+
+export const developerStatus = {
+  ACTIVE: { label: "Ativo", tone: "success", icon: UserCheck },
+  INACTIVE: { label: "Inativo", tone: "neutral", icon: UserX },
+} satisfies StatusMap<string>;
+export type DeveloperStatus = keyof typeof developerStatus;
+
+/* Participação em time/projeto (§9) — encerrada continua no histórico (RN-025) */
+export const membershipStatus = {
+  ACTIVE: { label: "Ativa", tone: "success", icon: Link2 },
+  ENDED: { label: "Encerrada", tone: "neutral", icon: History },
+} satisfies StatusMap<string>;
+export type MembershipStatus = keyof typeof membershipStatus;
+
 export const projectStatus = {
   ACTIVE: { label: "Ativo", tone: "success", icon: Play },
   PAUSED: { label: "Pausado", tone: "attention", icon: Pause },

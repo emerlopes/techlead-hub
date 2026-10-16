@@ -1,11 +1,6 @@
 import { Calculator, Hand } from "lucide-react";
+import { formatBusinessDate as formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
-
-const fmt = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short" });
-
-function formatDate(iso: string) {
-  return fmt.format(new Date(`${iso}T12:00:00`)).replace(".", "");
-}
 
 /**
  * Compromisso × previsão. Nunca confundir previsão manual com calculada (§26.3),

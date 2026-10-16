@@ -7,6 +7,8 @@ export const errorCodes = [
   "CSRF_REJECTED",
   "NOT_FOUND",
   "CONFLICT",
+  /** Regra de negócio violada (ex.: vincular a projeto arquivado — §8.5). */
+  "RULE_VIOLATION",
   "SETUP_ALREADY_DONE",
   "SETUP_REQUIRED",
   "INVALID_CREDENTIALS",

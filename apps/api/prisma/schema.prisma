@@ -24,6 +24,11 @@ model Workspace {
 
   users       User[]
   auditEvents AuditEvent[]
+  teams       Team[]
+  projects    Project[]
+  developers  Developer[]
+  tasks       Task[]
+  focusQueue  FocusQueueItem[]
 
   @@map("workspaces")
 }
@@ -36,7 +41,7 @@ model User {
   /// Hash Argon2id em formato PHC (§44.2). Nunca a senha.
   passwordHash     String    @map("password_hash")
   /// Único usuário proprietário (§44.1): a constraint impede um segundo setup concorrente.
-  isOwner          Boolean   @default(true) @unique @map("is_owner")
+  isOwner          Boolean   @unique @default(true) @map("is_owner")
   failedLoginCount Int       @default(0) @map("failed_login_count")
   lockedUntil      DateTime? @map("locked_until") @db.Timestamptz(3)
   lastLoginAt      DateTime? @map("last_login_at") @db.Timestamptz(3)
@@ -83,4 +88,214 @@ model AuditEvent {
   @@index([workspaceId, occurredAt])
   @@index([entityType, entityId])
   @@map("audit_events")
+}
+
+// ---------------------------------------------------------------------------
+// Organização e gestão pessoal (Etapa 2, §54): times, projetos, desenvolvedores,
+// associações (§9), atividades pessoais e fila de foco (§6).
+// ---------------------------------------------------------------------------
+
+enum TeamStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum ProjectStatus {
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
+enum DeveloperStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum TaskType {
+  TECHNICAL
+  FOLLOW_UP
+  DECISION
+  MEETING
+  PLANNING
+  REVIEW
+  INVESTIGATION
+  OTHER
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  BLOCKED
+  DONE
+  CANCELLED
+}
+
+enum TaskPriority {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+model Team {
+  id          String     @id @default(uuid()) @db.Uuid
+  workspaceId String     @map("workspace_id") @db.Uuid
+  name        String     @db.VarChar(80)
+  /// Único por workspace (§7.4, RN-015).
+  code        String     @db.VarChar(12)
+  description String?    @db.VarChar(500)
+  status      TeamStatus @default(ACTIVE)
+  createdAt   DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime   @updatedAt @map("updated_at") @db.Timestamptz(3)
+  version     Int        @default(1)
+
+  workspace  Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  projects   TeamProject[]
+  developers TeamDeveloper[]
+  tasks      TaskTeam[]
+
+  @@unique([workspaceId, code])
+  @@map("teams")
+}
+
+model Project {
+  id          String        @id @default(uuid()) @db.Uuid
+  workspaceId String        @map("workspace_id") @db.Uuid
+  name        String        @db.VarChar(80)
+  /// Único por workspace (§8.5, RN-015).
+  code        String        @db.VarChar(12)
+  description String?       @db.VarChar(500)
+  status      ProjectStatus @default(ACTIVE)
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+  version     Int           @default(1)
+
+  workspace Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  teams     TeamProject[]
+  tasks     TaskProject[]
+
+  @@unique([workspaceId, code])
+  @@map("projects")
+}
+
+/// Participação de um time em um projeto (§9.1). Encerrar preserva o histórico (RN-025).
+model TeamProject {
+  id        String    @id @default(uuid()) @db.Uuid
+  teamId    String    @map("team_id") @db.Uuid
+  projectId String    @map("project_id") @db.Uuid
+  startedAt DateTime  @default(now()) @map("started_at") @db.Timestamptz(3)
+  endedAt   DateTime? @map("ended_at") @db.Timestamptz(3)
+  isPrimary Boolean   @default(false) @map("is_primary")
+
+  team    Team    @relation(fields: [teamId], references: [id], onDelete: Restrict)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Restrict)
+
+  @@index([teamId])
+  @@index([projectId])
+  @@map("team_projects")
+}
+
+model Developer {
+  id              String          @id @default(uuid()) @db.Uuid
+  workspaceId     String          @map("workspace_id") @db.Uuid
+  name            String          @db.VarChar(80)
+  email           String?         @db.VarChar(254)
+  roleDescription String?         @map("role_description") @db.VarChar(120)
+  status          DeveloperStatus @default(ACTIVE)
+  notes           String?         @db.VarChar(2000)
+  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+  version         Int             @default(1)
+
+  workspace Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  teams     TeamDeveloper[]
+
+  @@index([workspaceId, status])
+  @@map("developers")
+}
+
+/// Participação de um desenvolvedor em um time (§9.3). Mudanças de time preservam histórico.
+model TeamDeveloper {
+  id          String    @id @default(uuid()) @db.Uuid
+  teamId      String    @map("team_id") @db.Uuid
+  developerId String    @map("developer_id") @db.Uuid
+  startedAt   DateTime  @default(now()) @map("started_at") @db.Timestamptz(3)
+  endedAt     DateTime? @map("ended_at") @db.Timestamptz(3)
+
+  team      Team      @relation(fields: [teamId], references: [id], onDelete: Restrict)
+  developer Developer @relation(fields: [developerId], references: [id], onDelete: Restrict)
+
+  @@index([teamId])
+  @@index([developerId])
+  @@map("team_developers")
+}
+
+/// Atividade pessoal do Tech Lead (§6). Domínio separado das entregas dos times (§3.2).
+model Task {
+  id             String       @id @default(uuid()) @db.Uuid
+  workspaceId    String       @map("workspace_id") @db.Uuid
+  title          String       @db.VarChar(200)
+  description    String?      @db.VarChar(5000)
+  type           TaskType     @default(OTHER)
+  status         TaskStatus   @default(TODO)
+  priority       TaskPriority @default(MEDIUM)
+  /// Data de negócio (§35.3), interpretada no fuso do workspace.
+  dueDate        DateTime?    @map("due_date") @db.Date
+  nextAction     String?      @map("next_action") @db.VarChar(300)
+  blockedReason  String?      @map("blocked_reason") @db.VarChar(500)
+  estimatedHours Decimal?     @map("estimated_hours") @db.Decimal(7, 2)
+  actualHours    Decimal?     @map("actual_hours") @db.Decimal(7, 2)
+  completedAt    DateTime?    @map("completed_at") @db.Timestamptz(3)
+  cancelledAt    DateTime?    @map("cancelled_at") @db.Timestamptz(3)
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+  version        Int          @default(1)
+
+  workspace Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  teams     TaskTeam[]
+  projects  TaskProject[]
+  focus     FocusQueueItem?
+
+  @@index([workspaceId, status, dueDate])
+  @@map("tasks")
+}
+
+/// Vínculo atividade ↔ time: a atividade continua única (§6.8).
+model TaskTeam {
+  taskId String @map("task_id") @db.Uuid
+  teamId String @map("team_id") @db.Uuid
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  team Team @relation(fields: [teamId], references: [id], onDelete: Restrict)
+
+  @@id([taskId, teamId])
+  @@index([teamId])
+  @@map("task_teams")
+}
+
+model TaskProject {
+  taskId    String @map("task_id") @db.Uuid
+  projectId String @map("project_id") @db.Uuid
+
+  task    Task    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Restrict)
+
+  @@id([taskId, projectId])
+  @@index([projectId])
+  @@map("task_projects")
+}
+
+/// Fila de foco (§6.6): até três atividades (RN-003), no máximo um foco principal (RN-002).
+model FocusQueueItem {
+  id          String  @id @default(uuid()) @db.Uuid
+  workspaceId String  @map("workspace_id") @db.Uuid
+  taskId      String  @unique @map("task_id") @db.Uuid
+  position    Int
+  isPrimary   Boolean @default(false) @map("is_primary")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  task      Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, position])
+  @@map("focus_queue_items")
 }

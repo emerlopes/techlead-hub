@@ -10,9 +10,10 @@ import {
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
+import type { z } from "zod";
 import { apiBaseUrl } from "./config";
 
-export type Loaded<T> = { ok: true; data: T } | { ok: false; reason: "unavailable" };
+export type Loaded<T> = { ok: true; data: T } | { ok: false; reason: "unavailable" | "not_found" };
 
 async function apiGet(path: string, withSession: boolean): Promise<Response | null> {
   const headers: Record<string, string> = { accept: "application/json" };
@@ -49,4 +50,26 @@ export async function requireMe(): Promise<Loaded<Me>> {
   if (!result.ok) return result;
   if (!result.data) redirect("/login");
   return { ok: true, data: result.data };
+}
+
+/**
+ * Leitura autenticada de um recurso da API, validada pelo schema compartilhado. Sem sessão →
+ * login; 404 → `not_found` (a página chama `notFound()`); demais falhas → `unavailable`.
+ */
+export async function loadApi<S extends z.ZodType>(path: string, schema: S): Promise<Loaded<z.output<S>>> {
+  const response = await apiGet(path, true);
+  if (!response) return { ok: false, reason: "unavailable" };
+  if (response.status === 401) redirect("/login");
+  if (response.status === 404) return { ok: false, reason: "not_found" };
+  if (!response.ok) return { ok: false, reason: "unavailable" };
+  const parsed = schema.safeParse(await response.json());
+  return parsed.success ? { ok: true, data: parsed.data } : { ok: false, reason: "unavailable" };
+}
+
+/** Monta a query string ignorando valores vazios. */
+export function withQuery(path: string, params: Record<string, string | undefined>): string {
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) if (value) query.set(key, value);
+  const text = query.toString();
+  return text ? `${path}?${text}` : path;
 }
