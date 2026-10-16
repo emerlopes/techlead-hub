@@ -15,7 +15,10 @@ export async function startApp(): Promise<{ app: INestApplication; prisma: Prism
 /** Limpa as tabelas entre cenários, respeitando as chaves estrangeiras. */
 export async function resetDatabase(prisma: PrismaService): Promise<void> {
   await prisma.$executeRawUnsafe(
-    "TRUNCATE TABLE focus_queue_items, task_teams, task_projects, tasks, team_projects, team_developers, " +
+    "TRUNCATE TABLE journal_links, journal_entries, risk_links, risks, refinement_check_items, refinements, " +
+      "release_forecast_history, release_milestones, release_memberships, releases, sprint_memberships, sprints, " +
+      "delivery_tracking_history, delivery_trackings, task_work_items, external_work_items, external_sources, " +
+      "focus_queue_items, task_teams, task_projects, tasks, team_projects, team_developers, " +
       "teams, projects, developers, audit_events, sessions, users, workspaces RESTART IDENTITY CASCADE",
   );
 }
@@ -46,6 +49,7 @@ export async function signedIn(app: INestApplication) {
     post: (path: string, body?: object) => server().post(`/api/v1${path}`).set(csrf).set("Cookie", cookie).send(body),
     patch: (path: string, body: object) => server().patch(`/api/v1${path}`).set(csrf).set("Cookie", cookie).send(body),
     put: (path: string, body: object) => server().put(`/api/v1${path}`).set(csrf).set("Cookie", cookie).send(body),
+    delete: (path: string) => server().delete(`/api/v1${path}`).set(csrf).set("Cookie", cookie),
   };
 }
 

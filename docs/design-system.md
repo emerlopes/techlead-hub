@@ -111,6 +111,9 @@ Geist (UI) e Geist Mono (identificadores externos, códigos de contexto, número
 | `Alert` | `info` · `success` · `warning` · `danger`, com ação opcional. |
 | `EmptyState` | Explica o motivo e oferece a próxima ação; nunca inventa conteúdo. |
 | `ConfirmButton` | Ação que encerra ou destrói algo: o primeiro clique troca o botão por “pergunta · Voltar · Confirmar (danger)” no próprio lugar; nada acontece sem o segundo clique. |
+| `CheckboxGroup` | Seleção múltipla com rolagem própria (vínculos de atividades, riscos e diário); um valor por opção marcada com o mesmo `name`. `idPrefix` é obrigatório quando o grupo se repete na página. |
+| `SegmentedNav` | Filtro segmentado por links (estado na URL, funciona sem JS): abertas · encerradas · todas, situação, tipo. |
+| `Pagination` | Anterior/próxima por links, com “1–50 de 120” (RNF-009). `hrefFor` preserva os filtros. |
 | `Skeleton`, `Separator`, `Kbd`, `Avatar`, `ThemeToggle` | Utilitários. `Avatar` usa iniciais (desenvolvedores não têm login/foto). |
 
 ## 6. Status do domínio (`lib/design-system/status.ts`)
@@ -137,6 +140,16 @@ Fonte única para rótulo pt-BR, tom e ícone de cada enum da especificação. S
 | `jobStatus` | §41.4 | Na fila · Executando · Nova tentativa · Concluído · Falhou · Cancelado |
 | `journalCategory` | §17.2 | Decisão técnica · Incidente · Bloqueio · Desbloqueio · Aprendizado · Mudança de escopo · Conquista · Risco · Acontecimento geral |
 | `scopeType` | §11.5 | Original · Adicionado · Remanejado |
+| `sprintExitReason` | §11.5, RN-010 | Concluído na sprint · Não concluído · Remanejado · Removido |
+| `executionStatus` | §13.4 | Não iniciada · Em andamento · Em revisão · Concluída · Cancelada (independente do refinamento, RN-007) |
+| `workItemType` | §13.5 | História · Bug · Tarefa técnica · Spike · Melhoria · Outro |
+| `statusSource` | §14.3 | Tech Lead · Desenvolvedor · Ferramenta externa · Reunião |
+| `releaseStatus` | §12 | Planejada · Em andamento · Entregue · Cancelada |
+| `releaseRequirement` | §12.2 | Obrigatório · Opcional |
+| `riskType` | §16 | Risco · Impedimento |
+| `riskSeverity` / `riskProbability` | §16.2 | Crítica · Alta · Média · Baixa / Alta · Média · Baixa |
+| `riskStatus` | §16, RN-008 | Aberto · Em monitoramento · Resolvido · Cancelado |
+| `blockingLevel` | §16.4 | Bloqueio total · Bloqueio parcial |
 
 Novos enums: adicionar ao arquivo com `satisfies StatusMap<string>`; marcar `indeterminate: true` para estados sem dados e `busy: true` para estados transitórios.
 
@@ -153,7 +166,13 @@ Novos enums: adicionar ao arquivo com `satisfies StatusMap<string>`; marcar `ind
 | `StaleIndicator` | Acompanhamento desatualizado após N dias (padrão 3) ou nunca verificado (§5.4, §14.5). |
 | `Kpi` | Indicador do dashboard; `value = null` → `—`. |
 | `RecommendationCard` | Explicação + ganhos + efeitos colaterais (CA-028); ações Rejeitar · Simular · Aprovar; “Aplicar” só após aprovação e com aviso de revalidação (RN-041/042). |
-| `JournalEntry` | Linha do tempo do Diário de Bordo com ícone por categoria e chips de contexto. |
+| `JournalEntry` | Linha do tempo do Diário de Bordo com ícone por categoria e chips de contexto; `links` (navegáveis) e `actions` opcionais. |
+| `HealthIndicator` | Saúde de uma entrega: avaliação manual × calculada, guardadas separadamente (§14.4). A manual prevalece; ícone de mão (manual) ou calculadora (calculada); quando divergem, mostra “calculada: …”. Encerrada → nada. |
+| `WorkItemRow` | Item externo em linha compacta: chave em mono, link externo, saúde, execução, tipo, projeto/time, responsável, compromisso, sprint e `StaleIndicator`. `aside` para ações (retirar do escopo, obrigatório/opcional). |
+| `SprintSummary` | Sprint em linha (§5.2.4): time, período, concluídas/total, bloqueios e riscos, barra `delivery`. Sem capacidade/demanda até a Etapa 4. |
+| `ReleaseSummary` | Release em linha (§5.2.5): projeto, saúde, obrigatórios/opcionais, times participantes (sem duplicar a release), riscos e `DateDelta`. |
+| `HistoryList` | Histórico a partir da auditoria: ação, data, transição de situação (`statusMap`) e campos alterados — nunca valores pessoais (§44.5). |
+| `LinkChips` | Contextos de um risco ou acontecimento (times, projetos, itens, sprints, releases, riscos, atividades), cada um com link e `aria-label`. |
 | `DomainTag`, `ContextChip` | Identidade do domínio; códigos de time/projeto em mono (`CHK`, `PAY`). |
 
 ## 8. Shell da aplicação (`components/app`)
@@ -161,7 +180,8 @@ Novos enums: adicionar ao arquivo com `satisfies StatusMap<string>`; marcar `ind
 | Componente | Notas |
 | --- | --- |
 | `Brand` | Marca + link para o início. `compact` oculta o nome no mobile (fica para leitores de tela). |
-| `AppNav` | Navegação principal; item ativo com `aria-current="page"`; rótulos viram `sr-only` no mobile. |
+| `AppNav` | Áreas principais (Início · Atividades · Entregas · Organização · Configurações); item ativo com `aria-current="page"`; rótulos viram `sr-only` no mobile. |
+| `SectionNav` | Sub-navegação de uma área (`lib/navigation.ts`: `deliverySection`, `organizationSection`), renderizada pelo layout do route group `(delivery)`/`(organization)`. Abas sublinhadas, rolagem horizontal própria no mobile. Usa `usePathname`: dentro de `<Suspense>`. |
 | `PageHeader` | Título de página (`text-xl`), eyebrow opcional (texto ou link de volta), descrição e `actions` à direita (quebram abaixo no mobile). |
 | `ListSkeleton`, `DetailSkeleton` | Carregamento padrão de listagens e páginas de detalhe. |
 | `ApiUnavailable` | Estado de falha padrão quando a API não responde: `Alert tone="danger"` + `RetryButton`. |
@@ -182,7 +202,10 @@ Server Components leem a API com `loadApi(path, schema)` (`lib/api/server.ts`): 
 - **Simulação (§27):** `Alert tone="info"` persistente informando que nada altera o planejamento-base.
 - **Erros de validação:** mensagem no domínio, citando a regra (“A soma das alocações chega a 120% (RN-029)”).
 - **Filtros globais (§5.3):** `ContextFilter` (`features/context`) no topo do dashboard e de Minhas Atividades, com `Select` compactos (`h-7`). A escolha fica no cookie `tlh_context` e persiste durante a navegação até ser alterada; a fila de foco não muda com o contexto (§5.4).
-- **Tabelas de entregas:** item (chave externa em mono + link externo) · responsável · saúde · `DateDelta` · confiança · verificação.
+- **Listas de entregas:** `WorkItemRow` — item (chave externa em mono + link externo) · saúde (`HealthIndicator`) · execução · responsável · compromisso · verificação (`StaleIndicator`). Confiança entra com o motor de previsão.
+- **Acompanhamento desatualizado (§14.5):** `Alert tone="warning"` no detalhe + `StaleIndicator` nas linhas; “Registrar verificação” registra sem alterar dados.
+- **Escopo de sprint/release:** retirar do escopo usa `ConfirmButton` e mantém o item no histórico (“Saíram durante a sprint”, “retirados do escopo”).
+- **Exceções justificadas (§15.5):** marcar “pronta” com checklist incompleto exibe o campo de justificativa obrigatório; checklist completo só sugere (`Alert success` com ação), nunca aplica.
 - **Dashboard (§5):** KPIs no topo → foco principal + capacidade à esquerda → entregas críticas à direita. Ver seção “Composição” no showcase.
 
 ## 10. Acessibilidade
@@ -196,4 +219,4 @@ Server Components leem a API com `loadApi(path, schema)` (`lib/api/server.ts`): 
 ## 11. Pendências
 
 - Componentes com Radix (Dialog, Popover, DropdownMenu, Tooltip, Command ⌘K) — adicionar via `npx shadcn add …` quando os módulos precisarem; os tokens já são compatíveis.
-- Navegação definitiva (sidebar dos 20 módulos) e gráficos (burndown, histórico de previsões) — a definir junto com os fluxos detalhados de §56.7.
+- Navegação definitiva (sidebar quando Capacidade e Planejamento entrarem; hoje áreas + `SectionNav`) e gráficos (burndown, histórico de previsões) — a definir junto com os fluxos detalhados de §56.7.

@@ -51,3 +51,58 @@ export const contextRefSchema = z.object({
 });
 
 export type ContextRef = z.infer<typeof contextRefSchema>;
+
+/* -------------------------------------------------------------------------- */
+/* Paginação (RNF-009)                                                        */
+/* -------------------------------------------------------------------------- */
+
+export const PAGE_SIZE_DEFAULT = 50;
+export const PAGE_SIZE_MAX = 100;
+
+export const paginationQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(PAGE_SIZE_MAX).default(PAGE_SIZE_DEFAULT),
+});
+
+export function paginatedSchema<T extends z.ZodType>(item: T) {
+  return z.object({
+    items: z.array(item),
+    total: z.number().int(),
+    page: z.number().int(),
+    pageSize: z.number().int(),
+  });
+}
+
+export type Paginated<T> = { items: T[]; total: number; page: number; pageSize: number };
+
+/** Recorta uma página de uma lista já filtrada e ordenada. */
+export function paginate<T>(rows: readonly T[], page: number, pageSize: number): Paginated<T> {
+  const start = (page - 1) * pageSize;
+  return { items: rows.slice(start, start + pageSize), total: rows.length, page, pageSize };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Histórico (RNF-004)                                                        */
+/* -------------------------------------------------------------------------- */
+
+/** Evento de auditoria de uma entidade: nomes de campos e transições, nunca valores pessoais (§44.5). */
+export const historyEntrySchema = z.object({
+  id: z.uuid(),
+  action: z.string(),
+  occurredAt: z.iso.datetime(),
+  fields: z.array(z.string()),
+  fromStatus: z.string().nullable(),
+  toStatus: z.string().nullable(),
+});
+export type HistoryEntry = z.infer<typeof historyEntrySchema>;
+
+/** Referências compactas usadas em vínculos. */
+export const workItemRefSchema = z.object({ id: z.uuid(), externalKey: z.string(), title: z.string() });
+export type WorkItemRef = z.infer<typeof workItemRefSchema>;
+
+/** Pessoa, sprint ou release referenciada pelo nome. */
+export const namedRefSchema = z.object({ id: z.uuid(), name: z.string() });
+export type NamedRef = z.infer<typeof namedRefSchema>;
+
+/** Filtro `?stale=true` e similares vindos da query string. */
+export const queryFlag = z.stringbool().optional();

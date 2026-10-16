@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import type { HistoryEntry } from "@tlh/shared-contracts";
 import type { Prisma } from "../../generated/prisma/client";
 import { PrismaService } from "../../infrastructure/prisma/prisma.service";
 
@@ -22,7 +23,34 @@ export type AuditAction =
   | "task.created"
   | "task.updated"
   | "task.completed"
-  | "focus_queue.updated";
+  | "focus_queue.updated"
+  | "external_source.created"
+  | "external_source.updated"
+  | "work_item.created"
+  | "work_item.updated"
+  | "work_item.checked"
+  | "refinement.updated"
+  | "refinement_check_item.created"
+  | "refinement_check_item.updated"
+  | "refinement_check_item.deleted"
+  | "sprint.created"
+  | "sprint.updated"
+  | "sprint.closed"
+  | "sprint.item_added"
+  | "sprint.item_removed"
+  | "sprint.item_moved"
+  | "release.created"
+  | "release.updated"
+  | "release.item_added"
+  | "release.item_updated"
+  | "release.item_removed"
+  | "release_milestone.created"
+  | "release_milestone.updated"
+  | "release_milestone.deleted"
+  | "risk.created"
+  | "risk.updated"
+  | "journal_entry.created"
+  | "journal_entry.updated";
 
 export type AuditInput = {
   action: AuditAction;
@@ -36,7 +64,15 @@ export type AuditInput = {
     | "team_project"
     | "team_developer"
     | "task"
-    | "focus_queue";
+    | "focus_queue"
+    | "external_source"
+    | "work_item"
+    | "refinement_check_item"
+    | "sprint"
+    | "release"
+    | "release_milestone"
+    | "risk"
+    | "journal_entry";
   entityId?: string;
   workspaceId?: string;
   actorUserId?: string;
@@ -55,4 +91,31 @@ export class AuditService {
   async record(event: AuditInput, client: AuditClient = this.prisma): Promise<void> {
     await client.auditEvent.create({ data: event });
   }
+
+  /**
+   * Histórico de uma entidade a partir da trilha de auditoria (RNF-004): ação, campos alterados e
+   * transição de situação, do mais recente para o mais antigo.
+   */
+  async history(workspaceId: string, entityType: AuditInput["entityType"], entityId: string): Promise<HistoryEntry[]> {
+    const events = await this.prisma.auditEvent.findMany({
+      where: { workspaceId, entityType, entityId },
+      orderBy: { occurredAt: "desc" },
+      take: 100,
+    });
+    return events.map((event) => {
+      const meta = isRecord(event.metadata) ? event.metadata : {};
+      return {
+        id: event.id,
+        action: event.action,
+        occurredAt: event.occurredAt.toISOString(),
+        fields: Array.isArray(meta.fields) ? meta.fields.filter((f): f is string => typeof f === "string") : [],
+        fromStatus: typeof meta.fromStatus === "string" ? meta.fromStatus : null,
+        toStatus: typeof meta.toStatus === "string" ? meta.toStatus : null,
+      };
+    });
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

@@ -21,12 +21,17 @@ export function JournalEntry({
   date,
   description,
   contexts = [],
+  links,
+  actions,
   last,
 }: {
   category: JournalCategory;
   date: string;
   description: string;
   contexts?: string[];
+  /** Vínculos navegáveis (substitui `contexts` quando informado). */
+  links?: React.ReactNode;
+  actions?: React.ReactNode;
   last?: boolean;
 }) {
   const meta = journalCategory[category];
@@ -37,15 +42,14 @@ export function JournalEntry({
       <span className={cn("z-10 flex size-8 shrink-0 items-center justify-center rounded-full ring-4 ring-surface", ring[meta.tone])}>
         <Icon className="size-4" aria-hidden />
       </span>
-      <div className="flex min-w-0 flex-col gap-1 pt-1">
+      <div className="flex min-w-0 flex-1 flex-col gap-1 pt-1">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
           <span className="font-semibold">{meta.label}</span>
           <span className="text-subtle-foreground tabular">{date}</span>
-          {contexts.map((c) => (
-            <ContextChip key={c} code={c} />
-          ))}
+          {links ?? contexts.map((c) => <ContextChip key={c} code={c} />)}
+          {actions && <span className="ml-auto">{actions}</span>}
         </div>
-        <p className="text-sm text-muted-foreground">{description}</p>
+        <p className="text-sm break-words whitespace-pre-line text-muted-foreground">{description}</p>
       </div>
     </li>
   );

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { safeNextPath } from "./navigation";
+import { isActiveSection, safeNextPath } from "./navigation";
 
 describe("safeNextPath", () => {
   it("mantém caminhos internos", () => {
@@ -11,5 +11,15 @@ describe("safeNextPath", () => {
     for (const value of [undefined, "", "https://evil.example", "//evil.example", "/\\evil.example"]) {
       expect(safeNextPath(value)).toBe("/");
     }
+  });
+});
+
+describe("isActiveSection", () => {
+  it("ativa a seção e suas subpáginas, sem prefixos parciais", () => {
+    expect(isActiveSection("/sprints/123", "/sprints")).toBe(true);
+    expect(isActiveSection("/sprints", "/sprints")).toBe(true);
+    expect(isActiveSection("/sprints-old", "/sprints")).toBe(false);
+    expect(isActiveSection("/tasks", "/")).toBe(false);
+    expect(isActiveSection("/", "/")).toBe(true);
   });
 });

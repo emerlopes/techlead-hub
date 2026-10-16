@@ -7,6 +7,10 @@ const refSelect = { id: true, code: true, name: true } as const;
 export const taskInclude = {
   teams: { select: { team: { select: refSelect } }, orderBy: { team: { code: "asc" } } },
   projects: { select: { project: { select: refSelect } }, orderBy: { project: { code: "asc" } } },
+  workItems: {
+    select: { workItem: { select: { id: true, externalKey: true, title: true } } },
+    orderBy: { workItem: { externalKey: "asc" } },
+  },
   focus: { select: { position: true, isPrimary: true } },
 } satisfies Prisma.TaskInclude;
 
@@ -31,6 +35,7 @@ export function toTaskDto(row: TaskRow, today: string): Task {
     cancelledAt: toIsoOrNull(row.cancelledAt),
     teams: row.teams.map((link) => link.team),
     projects: row.projects.map((link) => link.project),
+    workItems: row.workItems.map((link) => link.workItem),
     focus: row.focus,
     dueState: dueStateOf({ status: row.status, dueDate }, today),
     createdAt: row.createdAt.toISOString(),

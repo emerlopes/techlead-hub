@@ -66,10 +66,4 @@ export async function loadApi<S extends z.ZodType>(path: string, schema: S): Pro
   return parsed.success ? { ok: true, data: parsed.data } : { ok: false, reason: "unavailable" };
 }
 
-/** Monta a query string ignorando valores vazios. */
-export function withQuery(path: string, params: Record<string, string | undefined>): string {
-  const query = new URLSearchParams();
-  for (const [key, value] of Object.entries(params)) if (value) query.set(key, value);
-  const text = query.toString();
-  return text ? `${path}?${text}` : path;
-}
+export { withQuery } from "../search-params";

@@ -13,7 +13,8 @@ export function DateDelta({
   source = "CALCULATED",
   className,
 }: {
-  committed: string;
+  /** Sem compromisso registrado → "Sem compromisso" (§3.4). */
+  committed: string | null;
   forecast: string | null;
   /** Diferença em dias úteis (positivo = atraso). */
   delayBusinessDays?: number | null;
@@ -25,7 +26,12 @@ export function DateDelta({
   return (
     <div className={cn("inline-flex flex-col gap-0.5 text-xs tabular", className)}>
       <span className="text-muted-foreground">
-        Compromisso <span className="font-medium text-foreground">{formatDate(committed)}</span>
+        Compromisso{" "}
+        {committed ? (
+          <span className="font-medium text-foreground">{formatDate(committed)}</span>
+        ) : (
+          <span className="italic">sem data</span>
+        )}
       </span>
       <span className="inline-flex items-center gap-1">
         <SourceIcon
