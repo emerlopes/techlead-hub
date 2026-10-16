@@ -95,7 +95,7 @@ Geist (UI) e Geist Mono (identificadores externos, códigos de contexto, número
 - Raio base `--radius: 8px` → `rounded-sm` 4 · `md` 6 · `lg` 8 · `xl` 12.
 - Elevação sutil — a separação vem de bordas: `shadow-xs` cartões/campos · `shadow-md` popovers · `shadow-lg` diálogos/painéis.
 - Altura de controles: `sm` 28px · `md` 32px (padrão) · `lg` 40px.
-- **Efeito de clique:** todo botão (incluindo abas e botões só-ícone) usa a utility `pressable` (`app/globals.css`): ao pressionar, `scale(0.97)` + leve escurecimento em 120ms; ignorado quando `disabled` e reduzido por `prefers-reduced-motion`. `Button` e `TabsTrigger` já aplicam.
+- **Efeito de clique:** todo botão (incluindo abas e botões só-ícone) usa a utility `pressable` (`app/globals.css`): ao pressionar, `scale(0.97)` + leve escurecimento em 120ms; ignorado quando `disabled` e reduzido por `prefers-reduced-motion`. `Button` e `TabsTrigger` já aplicam. **Cursor:** `pressable` e a camada base (`button`, `[role=button]`, `[role=tab]`, `select`, checkbox/radio) aplicam `cursor: pointer` — o Tailwind v4 não faz mais isso por padrão; controles desabilitados usam `not-allowed`.
 
 ## 5. Primitivas (`components/ui`)
 
