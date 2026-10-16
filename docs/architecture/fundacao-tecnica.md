@@ -93,6 +93,6 @@ variáveis inválidas, sem ecoar valores. Por padrão a API escuta só em `127.0
 
 ## Fora do escopo desta etapa
 
-- Times, projetos, desenvolvedores e atividades (Etapa 2).
+- Times, projetos, desenvolvedores e atividades (Etapa 2 — ver [`organizacao-gestao-pessoal.md`](./organizacao-gestao-pessoal.md)).
 - Playwright/E2E, OpenTelemetry, backups (Etapas seguintes e §47, §49).
 - OpenAPI formal dos contratos (§36) — os schemas Zod de `shared-contracts` são a fonte atual.

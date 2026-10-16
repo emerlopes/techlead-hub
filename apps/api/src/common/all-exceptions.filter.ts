@@ -14,6 +14,7 @@ const codeByStatus: Record<number, ErrorCode> = {
   403: "FORBIDDEN",
   404: "NOT_FOUND",
   409: "CONFLICT",
+  422: "RULE_VIOLATION",
   429: "TOO_MANY_ATTEMPTS",
 };
 

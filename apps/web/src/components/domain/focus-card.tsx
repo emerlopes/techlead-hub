@@ -1,4 +1,5 @@
 import { ArrowRight, CalendarClock, Target } from "lucide-react";
+import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { priority, taskStatus, type Priority, type TaskStatus } from "@/lib/design-system/status";
@@ -14,6 +15,7 @@ export function FocusCard({
   overdue,
   nextAction,
   contexts = [],
+  href,
   className,
 }: {
   title: string;
@@ -23,6 +25,8 @@ export function FocusCard({
   overdue?: boolean;
   nextAction?: string;
   contexts?: string[];
+  /** Detalhe da atividade; o título vira link. */
+  href?: string;
   className?: string;
 }) {
   return (
@@ -36,7 +40,15 @@ export function FocusCard({
           <StatusBadge meta={priority[p]} size="sm" />
           <StatusBadge meta={taskStatus[status]} size="sm" variant="dot" />
         </div>
-        <h3 className="text-base font-semibold leading-snug text-balance">{title}</h3>
+        <h3 className="text-base font-semibold leading-snug text-balance">
+          {href ? (
+            <Link href={href} className="rounded-sm hover:underline">
+              {title}
+            </Link>
+          ) : (
+            title
+          )}
+        </h3>
         {nextAction && (
           <p className="flex items-start gap-1.5 text-sm text-muted-foreground">
             <ArrowRight className="mt-0.5 size-4 shrink-0 text-personal" aria-hidden />

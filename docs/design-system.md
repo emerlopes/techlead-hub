@@ -95,7 +95,7 @@ Geist (UI) e Geist Mono (identificadores externos, códigos de contexto, número
 - Raio base `--radius: 8px` → `rounded-sm` 4 · `md` 6 · `lg` 8 · `xl` 12.
 - Elevação sutil — a separação vem de bordas: `shadow-xs` cartões/campos · `shadow-md` popovers · `shadow-lg` diálogos/painéis.
 - Altura de controles: `sm` 28px · `md` 32px (padrão) · `lg` 40px.
-- **Efeito de clique:** todo botão (incluindo abas e botões só-ícone) usa a utility `pressable` (`app/globals.css`): ao pressionar, `scale(0.97)` + leve escurecimento em 120ms; ignorado quando `disabled` e reduzido por `prefers-reduced-motion`. `Button` e `TabsTrigger` já aplicam.
+- **Efeito de clique:** todo botão (incluindo abas e botões só-ícone) usa a utility `pressable` (`app/globals.css`): ao pressionar, `scale(0.97)` + leve escurecimento em 120ms; ignorado quando `disabled` e reduzido por `prefers-reduced-motion`. `Button` e `TabsTrigger` já aplicam. **Cursor:** `pressable` e a camada base (`button`, `[role=button]`, `[role=tab]`, `select`, checkbox/radio) aplicam `cursor: pointer` — o Tailwind v4 não faz mais isso por padrão; controles desabilitados usam `not-allowed`.
 
 ## 5. Primitivas (`components/ui`)
 
@@ -110,6 +110,7 @@ Geist (UI) e Geist Mono (identificadores externos, códigos de contexto, número
 | `Progress` | Barra simples com `tone`. |
 | `Alert` | `info` · `success` · `warning` · `danger`, com ação opcional. |
 | `EmptyState` | Explica o motivo e oferece a próxima ação; nunca inventa conteúdo. |
+| `ConfirmButton` | Ação que encerra ou destrói algo: o primeiro clique troca o botão por “pergunta · Voltar · Confirmar (danger)” no próprio lugar; nada acontece sem o segundo clique. |
 | `Skeleton`, `Separator`, `Kbd`, `Avatar`, `ThemeToggle` | Utilitários. `Avatar` usa iniciais (desenvolvedores não têm login/foto). |
 
 ## 6. Status do domínio (`lib/design-system/status.ts`)
@@ -121,6 +122,11 @@ Fonte única para rótulo pt-BR, tom e ícone de cada enum da especificação. S
 | `healthStatus` | §14.4, §25.8 | No prazo · Atenção · Em risco · Atrasada · Bloqueada · Indeterminada |
 | `taskStatus` | §6.4 | A fazer · Em andamento · Bloqueada · Concluída · Cancelada |
 | `priority` | §6.5 | Crítica · Alta · Média · Baixa |
+| `taskDueState` | §5.2.2, §6.6 | Atrasada · Vence hoje · Vence em breve (alerta de prazo, independente da fila de foco) |
+| `taskType` | §6.3 | Técnica · Acompanhamento · Decisão · Reunião · Planejamento · Revisão · Investigação · Outra |
+| `teamStatus` | §7.2 | Ativo · Inativo |
+| `developerStatus` | §10.2 | Ativo · Inativo |
+| `membershipStatus` | §9, RN-025 | Ativa · Encerrada (participação em time/projeto) |
 | `projectStatus` | §8.4 | Ativo · Pausado · Arquivado |
 | `sprintStatus` | §11.4 | Planejada · Ativa · Encerrada · Cancelada |
 | `refinementStatus` | §15.3 | Aguardando refinamento · Em análise · Com dúvidas · Pronta · Cancelada |
@@ -139,7 +145,8 @@ Novos enums: adicionar ao arquivo com `satisfies StatusMap<string>`; marcar `ind
 | Componente | Regra de produto embutida |
 | --- | --- |
 | `StatusBadge` | Ícone + rótulo; estados indeterminados com hachura e borda tracejada; estados `busy` animados. |
-| `FocusCard` | Foco principal único (RN-002), faixa `personal`, próxima ação sempre visível, prazo vencido em `danger`. |
+| `FocusCard` | Foco principal único (RN-002), faixa `personal`, próxima ação sempre visível, prazo vencido em `danger`. `href` opcional transforma o título em link. |
+| `TaskItem` | Atividade em linha compacta (dashboard, Kanban, agenda, fila de foco): prioridade, situação, alerta de prazo com data (§6.6), chips de contexto sem duplicar a atividade (§6.8), ícone de foco. |
 | `DateDelta` | Compromisso × previsão; diferença em dias úteis; ícone de origem (calculadora = calculada, mão = manual — §26.3); sem previsão → “Sem previsão”, nunca data inventada (§25.9). |
 | `ConfidenceMeter` | 3 barras + rótulo; `null` = “Confiança desconhecida”. |
 | `CapacityBar` | U = D / CA (§25.5). Faixas: <85% `capacity` · 85–100% `attention` · >100% `danger` com excedente hachurado após o marcador de 100%. CA = 0 → “Sem capacidade”, sem percentual. |
@@ -153,15 +160,20 @@ Novos enums: adicionar ao arquivo com `satisfies StatusMap<string>`; marcar `ind
 
 | Componente | Notas |
 | --- | --- |
-| `Brand` | Marca + link para o início. No mobile, o texto pode ser ocultado com `sr-only`. |
+| `Brand` | Marca + link para o início. `compact` oculta o nome no mobile (fica para leitores de tela). |
 | `AppNav` | Navegação principal; item ativo com `aria-current="page"`; rótulos viram `sr-only` no mobile. |
-| `PageHeader` | Título de página (`text-xl`), eyebrow opcional com o contexto e descrição. |
+| `PageHeader` | Título de página (`text-xl`), eyebrow opcional (texto ou link de volta), descrição e `actions` à direita (quebram abaixo no mobile). |
+| `ListSkeleton`, `DetailSkeleton` | Carregamento padrão de listagens e páginas de detalhe. |
 | `ApiUnavailable` | Estado de falha padrão quando a API não responde: `Alert tone="danger"` + `RetryButton`. |
 | `FormError` | Erro geral de formulário a partir de `ApiError`. Bloqueio (`TOO_MANY_ATTEMPTS`) e conflito de versão (`CONFLICT`) usam `warning`; demais, `danger`. |
 | `RetryButton` | `router.refresh()` com estado de carregamento; `label` customizável (“Recarregar” em conflitos). |
 | `PasswordInput` (`features/identity`) | `Input` com botão de mostrar/ocultar (`aria-pressed`). |
 
-Formulários que falam com a API usam `useApiForm` (`lib/api/use-api-form.ts`): valida no navegador com o schema de `@tlh/shared-contracts`, mapeia `details` para o `error` de cada `Field` e expõe `pending`.
+Formulários que falam com a API usam `useApiForm` (`lib/api/use-api-form.ts`): valida no navegador com o schema de `@tlh/shared-contracts`, mapeia `details` para o `error` de cada `Field` e expõe `pending`. Ações pontuais sem formulário (mudar situação, encerrar associação, reordenar a fila de foco) usam `useApiAction` (`lib/api/use-api-action.ts`), que executa, expõe o `ApiError` e faz `router.refresh()`.
+
+Server Components leem a API com `loadApi(path, schema)` (`lib/api/server.ts`): sem sessão → login; `404` → `not_found` (a página chama `notFound()`); demais falhas → `ApiUnavailable`.
+
+**Fronteira Server → Client:** ícones `lucide` são componentes e não podem ser passados como prop para Client Components. Passe uma chave e resolva o ícone num mapa estático do lado cliente (ver `features/organization/status-actions.tsx`).
 
 ## 9. Padrões de interface
 
@@ -169,7 +181,7 @@ Formulários que falam com a API usam `useApiForm` (`lib/api/use-api-form.ts`): 
 - **Previsões obsoletas (RNF-021, CA-031):** `Alert tone="warning"` com ação “Recalcular” no topo do contexto + `StatusBadge forecastState.STALE` no cabeçalho.
 - **Simulação (§27):** `Alert tone="info"` persistente informando que nada altera o planejamento-base.
 - **Erros de validação:** mensagem no domínio, citando a regra (“A soma das alocações chega a 120% (RN-029)”).
-- **Filtros globais (§5.3):** barra no topo do dashboard com `Select` compactos (`h-7`); persistem durante a navegação.
+- **Filtros globais (§5.3):** `ContextFilter` (`features/context`) no topo do dashboard e de Minhas Atividades, com `Select` compactos (`h-7`). A escolha fica no cookie `tlh_context` e persiste durante a navegação até ser alterada; a fila de foco não muda com o contexto (§5.4).
 - **Tabelas de entregas:** item (chave externa em mono + link externo) · responsável · saúde · `DateDelta` · confiança · verificação.
 - **Dashboard (§5):** KPIs no topo → foco principal + capacidade à esquerda → entregas críticas à direita. Ver seção “Composição” no showcase.
 

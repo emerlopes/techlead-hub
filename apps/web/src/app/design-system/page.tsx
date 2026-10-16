@@ -1,3 +1,4 @@
+import type { Task } from "@tlh/shared-contracts";
 import type { Metadata } from "next";
 import {
   AlertOctagon,
@@ -50,6 +51,7 @@ import { Kpi } from "@/components/domain/kpi";
 import { RecommendationCard } from "@/components/domain/recommendation-card";
 import { StaleIndicator } from "@/components/domain/stale-indicator";
 import { StatusBadge } from "@/components/domain/status-badge";
+import { TaskItem } from "@/components/domain/task-item";
 
 import { ApiUnavailable } from "@/components/app/api-unavailable";
 import { Brand } from "@/components/app/brand";
@@ -59,6 +61,7 @@ import { PasswordInput } from "@/features/identity/password-input";
 
 import * as status from "@/lib/design-system/status";
 import type { StatusMeta } from "@/lib/design-system/status";
+import { ConfirmButtonDemo } from "./confirm-button-demo";
 
 export const metadata: Metadata = {
   title: "Design System · Tech Lead Hub",
@@ -424,6 +427,7 @@ function Actions() {
         <Button disabled>
           <RefreshCw className="animate-spin" /> Recalculando…
         </Button>
+        <ConfirmButtonDemo />
         <span className="flex items-center gap-1 text-xs text-muted-foreground">
           Atalho global <Kbd>⌘</Kbd>
           <Kbd>K</Kbd>
@@ -713,6 +717,11 @@ function DomainStatus() {
         <StatusGroup title="Saúde da entrega" spec="§14.4 · §25.8" map={status.healthStatus} />
         <StatusGroup title="Atividade pessoal" spec="§6.4" map={status.taskStatus} />
         <StatusGroup title="Prioridade pessoal" spec="§6.5" map={status.priority} />
+        <StatusGroup title="Alerta de prazo" spec="§5.2.2 · §6.6" map={status.taskDueState} />
+        <StatusGroup title="Tipo de atividade" spec="§6.3" map={status.taskType} />
+        <StatusGroup title="Time" spec="§7.2" map={status.teamStatus} />
+        <StatusGroup title="Desenvolvedor" spec="§10.2" map={status.developerStatus} />
+        <StatusGroup title="Participação" spec="§9 · RN-025" map={status.membershipStatus} />
         <StatusGroup title="Refinamento" spec="§15.3" map={status.refinementStatus} />
         <StatusGroup title="Sprint" spec="§11.4" map={status.sprintStatus} />
         <StatusGroup title="Projeto" spec="§8.4" map={status.projectStatus} />
@@ -782,6 +791,29 @@ function Predictability() {
   );
 }
 
+const sampleTask = {
+  id: "00000000-0000-4000-8000-000000000001",
+  title: "Decidir estratégia de filas para o checkout",
+  description: null,
+  type: "DECISION",
+  status: "IN_PROGRESS",
+  priority: "CRITICAL",
+  dueDate: "2026-10-14",
+  nextAction: "Comparar custo de SQS × RabbitMQ com o time de plataforma",
+  blockedReason: null,
+  estimatedHours: 3,
+  actualHours: null,
+  completedAt: null,
+  cancelledAt: null,
+  teams: [{ id: "00000000-0000-4000-8000-000000000002", code: "PAY", name: "Pagamentos" }],
+  projects: [{ id: "00000000-0000-4000-8000-000000000003", code: "CHK", name: "Checkout" }],
+  focus: { position: 1, isPrimary: false },
+  dueState: "OVERDUE",
+  createdAt: "2026-10-01T12:00:00.000Z",
+  updatedAt: "2026-10-01T12:00:00.000Z",
+  version: 1,
+} satisfies Task;
+
 function DomainPatterns() {
   return (
     <Section
@@ -801,6 +833,13 @@ function DomainPatterns() {
           />
           <p className="text-xs text-muted-foreground">
             Foco principal: único (RN-002), faixa violeta do domínio pessoal, próxima ação sempre visível.
+          </p>
+          <Card className="p-4">
+            <TaskItem task={sampleTask} showNextAction />
+          </Card>
+          <p className="text-xs text-muted-foreground">
+            TaskItem: linha compacta de atividade (dashboard, Kanban, agenda). Alerta de prazo independente da
+            fila de foco (§6.6) e contextos sem duplicar a atividade (§6.8).
           </p>
         </div>
         <Card>
@@ -851,6 +890,15 @@ function AppShell() {
           <div className="flex w-full flex-col gap-4">
             <Brand />
             <PageHeader eyebrow="Hub da Ana" title="Configurações" description="Preferências e configurações globais do workspace." />
+            <PageHeader
+              title="Times"
+              description="Com ações à direita (quebram abaixo no mobile)."
+              actions={
+                <Button>
+                  <Plus /> Novo time
+                </Button>
+              }
+            />
           </div>
         </Specimen>
         <Specimen title="PasswordInput" note="alternar visibilidade com aria-pressed">

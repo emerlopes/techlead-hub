@@ -279,6 +279,22 @@
     font-variant-numeric: tabular-nums;
   }
 
+  /* O Tailwind v4 não aplica mais cursor de clique em botões: todo controle clicável o recebe. */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="tab"],
+  select:not(:disabled),
+  summary,
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled),
+  label:has(> input:not(:disabled)) {
+    cursor: pointer;
+  }
+
+  :disabled {
+    cursor: not-allowed;
+  }
+
   :focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 2px;
@@ -309,6 +325,12 @@
   transition-duration: 120ms;
   transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
   -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+
+  &:disabled,
+  &[aria-disabled="true"] {
+    cursor: not-allowed;
+  }
 
   &:active:not(:disabled, [aria-disabled="true"]) {
     transform: scale(0.97);

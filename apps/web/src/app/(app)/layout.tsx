@@ -9,10 +9,13 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
   return (
     <div className="flex min-h-full flex-1 flex-col bg-background">
       <header className="sticky top-0 z-10 border-b border-border bg-surface">
-        <div className="mx-auto flex h-14 w-full max-w-6xl items-center gap-3 px-4">
-          <Brand className="max-sm:[&>span+*]:sr-only" />
-          <AppNav />
-          <div className="ml-auto flex items-center gap-1">
+        <div className="mx-auto flex h-14 w-full max-w-6xl items-center gap-2 px-4 sm:gap-3">
+          <Brand compact />
+          {/* usePathname suspende em rotas com parâmetros dinâmicos (Cache Components). */}
+          <Suspense fallback={<div className="flex-1" />}>
+            <AppNav />
+          </Suspense>
+          <div className="ml-auto flex shrink-0 items-center gap-1">
             <Suspense fallback={<Skeleton className="h-7 w-32" />}>
               <UserMenu />
             </Suspense>
