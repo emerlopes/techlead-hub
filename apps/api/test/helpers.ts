@@ -15,7 +15,8 @@ export async function startApp(): Promise<{ app: INestApplication; prisma: Prism
 /** Limpa as tabelas entre cenários, respeitando as chaves estrangeiras. */
 export async function resetDatabase(prisma: PrismaService): Promise<void> {
   await prisma.$executeRawUnsafe(
-    "TRUNCATE TABLE journal_links, journal_entries, risk_links, risks, refinement_check_items, refinements, " +
+    "TRUNCATE TABLE effort_estimates, capacity_allocation_history, capacity_allocations, availability_exceptions, " +
+      "work_schedules, journal_links, journal_entries, risk_links, risks, refinement_check_items, refinements, " +
       "release_forecast_history, release_milestones, release_memberships, releases, sprint_memberships, sprints, " +
       "delivery_tracking_history, delivery_trackings, task_work_items, external_work_items, external_sources, " +
       "focus_queue_items, task_teams, task_projects, tasks, team_projects, team_developers, " +

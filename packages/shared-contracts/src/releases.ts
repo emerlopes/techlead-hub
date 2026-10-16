@@ -15,6 +15,9 @@ export const releaseProgressSchema = z.object({
   requiredDone: z.number().int(),
   optional: z.number().int(),
   optionalDone: z.number().int(),
+  /** Esforço restante dos obrigatórios em aberto que têm estimativa (§21); os demais contam à parte. */
+  requiredRemainingHours: z.number(),
+  requiredUnestimated: z.number().int(),
 });
 export type ReleaseProgress = z.infer<typeof releaseProgressSchema>;
 

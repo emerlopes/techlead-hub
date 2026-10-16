@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { isActiveSection, type NavSection } from "@/lib/navigation";
 
 /**
- * Sub-navegação de uma área (Entregas, Organização). Rola na horizontal no mobile sem gerar scroll
+ * Sub-navegação de uma área (Entregas, Capacidade, Organização). Rola na horizontal no mobile sem gerar scroll
  * de página. Usa `usePathname`: renderize dentro de `<Suspense>`.
  */
 export function SectionNav({ section }: { section: NavSection }) {
@@ -14,8 +14,8 @@ export function SectionNav({ section }: { section: NavSection }) {
   return (
     <nav aria-label={section.label} className="-mt-2 border-b border-border">
       <ul className="-mb-px flex gap-1 overflow-x-auto [scrollbar-width:none]">
-        {section.items.map(({ href, label }) => {
-          const active = isActiveSection(pathname, href);
+        {section.items.map(({ href, label, exact }) => {
+          const active = isActiveSection(pathname, href, exact);
           return (
             <li key={href} className="shrink-0">
               <Link

@@ -22,4 +22,10 @@ describe("isActiveSection", () => {
     expect(isActiveSection("/tasks", "/")).toBe(false);
     expect(isActiveSection("/", "/")).toBe(true);
   });
+
+  it("raiz de área exata não fica ativa nas subpáginas", () => {
+    expect(isActiveSection("/capacity/allocations", "/capacity", true)).toBe(false);
+    expect(isActiveSection("/capacity", "/capacity", true)).toBe(true);
+    expect(isActiveSection("/capacity/allocations/1", "/capacity/allocations")).toBe(true);
+  });
 });

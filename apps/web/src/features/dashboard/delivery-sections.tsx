@@ -73,7 +73,7 @@ export function DeliverySections({ data }: { data: Dashboard }) {
         <Card>
           <CardHeader>
             <CardTitle>Sprints ativas</CardTitle>
-            <CardDescription>Capacidade planejada e demanda estimada chegam com a Etapa 4.</CardDescription>
+            <CardDescription>Entregas, bloqueios, riscos e capacidade planejada × demanda estimada (§5.2.4).</CardDescription>
             <CardAction>
               <Link href="/sprints" className={buttonVariants({ variant: "ghost", size: "sm" })}>
                 Ver sprints

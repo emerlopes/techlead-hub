@@ -17,6 +17,7 @@ import { AddAssociationForm } from "@/features/organization/add-association-form
 import { AssociationList } from "@/features/organization/association-list";
 import { ContextForm } from "@/features/organization/context-form";
 import { type StatusAction, StatusActions } from "@/features/organization/status-actions";
+import { CapacityCardSkeleton, ProjectDemandCard } from "@/features/capacity/context-cards";
 import { DeliveriesCard, DeliveriesCardSkeleton } from "@/features/work-items/deliveries-card";
 import { loadApi, requireMe, withQuery } from "@/lib/api/server";
 import { projectStatus, teamStatus } from "@/lib/design-system/status";
@@ -145,6 +146,10 @@ async function ProjectView({ params }: Pick<PageProps<"/projects/[id]">, "params
             )}
           </CardContent>
         </Card>
+
+        <Suspense fallback={<CapacityCardSkeleton />}>
+          <ProjectDemandCard projectId={p.id} />
+        </Suspense>
 
         <Suspense fallback={<DeliveriesCardSkeleton />}>
           <DeliveriesCard filter={{ projectId: p.id }} description="Itens com este projeto de referência, de qualquer time (RN-018)." />

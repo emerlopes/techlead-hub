@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { CapacityModule } from "../capacity/capacity.module";
 import { ReleasesModule } from "../releases/releases.module";
 import { SprintsModule } from "../sprints/sprints.module";
 import { TasksModule } from "../tasks/tasks.module";
@@ -7,7 +8,7 @@ import { DashboardController } from "./dashboard.controller";
 import { DashboardService } from "./dashboard.service";
 
 @Module({
-  imports: [TasksModule, WorkItemsModule, SprintsModule, ReleasesModule],
+  imports: [TasksModule, CapacityModule, WorkItemsModule, SprintsModule, ReleasesModule],
   controllers: [DashboardController],
   providers: [DashboardService],
 })

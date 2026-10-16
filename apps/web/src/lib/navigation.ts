@@ -5,7 +5,8 @@ export function safeNextPath(value: string | string[] | undefined): string {
   return next;
 }
 
-export type NavSection = { label: string; items: readonly { href: string; label: string }[] };
+/** `exact`: raiz de área que não deve ficar ativa nas subpáginas irmãs (ex.: `/capacity`). */
+export type NavSection = { label: string; items: readonly { href: string; label: string; exact?: boolean }[] };
 
 /** Acompanhamento operacional dos times (Etapa 3): separado das atividades pessoais (§3.2). */
 export const deliverySection: NavSection = {
@@ -20,6 +21,17 @@ export const deliverySection: NavSection = {
   ],
 };
 
+/** Disponibilidade, alocação e demanda (Etapa 4, §18–§21). */
+export const capacitySection: NavSection = {
+  label: "Capacidade",
+  items: [
+    { href: "/capacity", label: "Visão geral", exact: true },
+    { href: "/capacity/allocations", label: "Alocações" },
+    { href: "/capacity/availability", label: "Ausências" },
+    { href: "/capacity/schedules", label: "Jornadas" },
+  ],
+};
+
 export const organizationSection: NavSection = {
   label: "Organização",
   items: [
@@ -29,8 +41,8 @@ export const organizationSection: NavSection = {
   ],
 };
 
-/** `/sprints/123` ativa `/sprints`; `/` só ativa a si mesmo. */
-export function isActiveSection(pathname: string, href: string): boolean {
-  if (href === "/") return pathname === "/";
+/** `/sprints/123` ativa `/sprints`; `/` só ativa a si mesmo; uma raiz de área só ativa a si mesma. */
+export function isActiveSection(pathname: string, href: string, exact = false): boolean {
+  if (href === "/" || exact) return pathname === href;
   return pathname === href || pathname.startsWith(`${href}/`);
 }

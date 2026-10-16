@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { contextLoadSchema } from "./capacity";
 import { contextRefSchema, historyEntrySchema, optionalText, versionSchema } from "./common";
 import { sprintStatuses } from "./delivery-rules";
 import { sprintExitReasons, sprintScopeTypes, workItemSchema } from "./work-items";
@@ -25,6 +26,11 @@ export const sprintSchema = z.object({
   status: z.enum(sprintStatuses),
   closedAt: z.iso.datetime().nullable(),
   counts: sprintCountsSchema,
+  /**
+   * Capacidade planejada (alocada ao time no período da sprint) × demanda estimada (esforço restante
+   * do escopo vigente) (§5.2.4, §25.5).
+   */
+  capacity: contextLoadSchema,
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
   version: z.number().int(),

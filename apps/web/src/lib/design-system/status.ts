@@ -3,6 +3,12 @@ import {
   Ban,
   BookOpen,
   Bug,
+  CalendarX,
+  Coffee,
+  GraduationCap,
+  LifeBuoy,
+  Percent,
+  Plane,
   CalendarClock,
   CalendarDays,
   CalendarRange,
@@ -21,6 +27,7 @@ import {
   Equal,
   ExternalLink,
   Eye,
+  Gauge,
   FileSearch,
   Flame,
   FlaskConical,
@@ -399,3 +406,70 @@ export const scopeType = {
   MOVED: { label: "Remanejado", tone: "info", icon: GitBranch },
 } satisfies StatusMap<string>;
 export type ScopeType = keyof typeof scopeType;
+
+/* -------------------------------------------------------------------------- */
+/* Capacidade (§18–§21)                                                       */
+/* -------------------------------------------------------------------------- */
+
+/* Tipos de exceção de calendário (§19.3) */
+export const availabilityExceptionType = {
+  VACATION: { label: "Férias", tone: "info", icon: Plane },
+  DAY_OFF: { label: "Folga", tone: "neutral", icon: Coffee },
+  HOLIDAY: { label: "Feriado", tone: "capacity", icon: CalendarX },
+  TRAINING: { label: "Treinamento", tone: "personal", icon: GraduationCap },
+  ABSENCE: { label: "Ausência", tone: "neutral", icon: UserX },
+  EXTRA_SUPPORT: { label: "Suporte extraordinário", tone: "attention", icon: LifeBuoy },
+  OTHER: { label: "Outra indisponibilidade", tone: "neutral", icon: CircleSlash },
+} satisfies StatusMap<string>;
+export type AvailabilityExceptionType = keyof typeof availabilityExceptionType;
+
+/* Utilização planejada U = D / CA (§25.5) */
+export const capacityLevel = {
+  HEALTHY: { label: "Saudável", tone: "capacity", icon: Gauge, description: "Demanda abaixo de 85% da capacidade alocada." },
+  ATTENTION: { label: "Atenção", tone: "attention", icon: Eye, description: "Demanda entre 85% e 100% da capacidade alocada." },
+  OVERLOADED: { label: "Sobrecarga", tone: "danger", icon: Flame, description: "Demanda acima da capacidade alocada." },
+  NO_CAPACITY: {
+    label: "Sem capacidade",
+    tone: "neutral",
+    icon: CircleHelp,
+    indeterminate: true,
+    description: "Nenhuma capacidade alocada: a utilização não é calculada (§25.5).",
+  },
+} satisfies StatusMap<string>;
+export type CapacityLevel = keyof typeof capacityLevel;
+
+/* Inconsistências de alocação sinalizadas antes da previsão (§20.5) */
+export const capacityIssueType = {
+  OVER_ALLOCATED: {
+    label: "Acima da capacidade",
+    tone: "danger",
+    icon: TrendingUp,
+    description: "Alocações somam mais horas que a capacidade efetiva no período (CA-011).",
+  },
+  PERCENTAGE_OVER_LIMIT: {
+    label: "Mais de 100%",
+    tone: "danger",
+    icon: Percent,
+    description: "Alocações percentuais somam mais de 100% em algum dia (RN-029).",
+  },
+  NO_SCHEDULE: {
+    label: "Sem jornada",
+    tone: "neutral",
+    icon: CalendarX,
+    indeterminate: true,
+    description: "Há alocação em dias sem jornada cadastrada: a capacidade é desconhecida.",
+  },
+  NOT_TEAM_MEMBER: {
+    label: "Fora do time",
+    tone: "attention",
+    icon: UserX,
+    description: "Alocação em um time do qual a pessoa não participa no período.",
+  },
+  INACTIVE_CONTEXT: {
+    label: "Contexto inativo",
+    tone: "attention",
+    icon: Archive,
+    description: "Alocação em time inativo, projeto arquivado ou pessoa desativada.",
+  },
+} satisfies StatusMap<string>;
+export type CapacityIssueType = keyof typeof capacityIssueType;

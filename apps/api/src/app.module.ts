@@ -4,6 +4,7 @@ import { AllExceptionsFilter } from "./common/all-exceptions.filter";
 import { ConfigModule } from "./infrastructure/config/config.module";
 import { PrismaModule } from "./infrastructure/prisma/prisma.module";
 import { AuditModule } from "./modules/audit/audit.module";
+import { CapacityModule } from "./modules/capacity/capacity.module";
 import { DashboardModule } from "./modules/dashboard/dashboard.module";
 import { DevelopersModule } from "./modules/developers/developers.module";
 import { HealthModule } from "./modules/health/health.module";
@@ -34,6 +35,7 @@ import { WorkspaceModule } from "./modules/workspace/workspace.module";
     ReleasesModule,
     RisksModule,
     JournalModule,
+    CapacityModule,
     DashboardModule,
     HealthModule,
   ],

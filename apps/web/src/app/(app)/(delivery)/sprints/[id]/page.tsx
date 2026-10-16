@@ -8,6 +8,7 @@ import { z } from "zod";
 import { ApiUnavailable } from "@/components/app/api-unavailable";
 import { DetailSkeleton } from "@/components/app/page-skeletons";
 import { PageHeader } from "@/components/app/page-header";
+import { ContextLoadView } from "@/components/domain/context-load";
 import { ContextChip, DomainTag } from "@/components/domain/domain-tag";
 import { HistoryList } from "@/components/domain/history-list";
 import { Kpi } from "@/components/domain/kpi";
@@ -164,6 +165,18 @@ async function SprintView({ params }: Pick<PageProps<"/sprints/[id]">, "params">
         </div>
 
         <div className="flex min-w-0 flex-col gap-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Capacidade</CardTitle>
+              <CardDescription>Alocada ao time no período da sprint × esforço restante do escopo em aberto (§5.2.4).</CardDescription>
+              <CardAction>
+                <DomainTag domain="capacity" />
+              </CardAction>
+            </CardHeader>
+            <CardContent>
+              <ContextLoadView load={s.capacity} label="Capacidade planejada × demanda" dueLabel="está no escopo" />
+            </CardContent>
+          </Card>
           <RiskListCard risks={risks.data} newHref={`/risks/new?sprintId=${s.id}`} empty="Nenhum risco aberto ligado à sprint." />
           <JournalCard
             entries={journal.data.items}

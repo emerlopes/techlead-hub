@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { effortEstimateSchema } from "./capacity";
 import {
   contextRefSchema,
   namedRefSchema,
@@ -118,6 +119,8 @@ export const workItemSchema = z.object({
   /** Releases vigentes do item (RN-009). */
   releases: z.array(namedRefSchema.extend({ isRequired: z.boolean() })),
   openRisks: z.array(riskSignalSchema),
+  /** Estimativa vigente (§21): a revisão mais recente. */
+  estimate: effortEstimateSchema.nullable(),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
   version: z.number().int(),
@@ -194,6 +197,8 @@ export const workItemDetailSchema = workItemSchema.extend({
   ),
   /** Atividades pessoais vinculadas (§6.8): concluir uma não resolve a outra. */
   tasks: z.array(z.object({ id: z.uuid(), title: z.string(), status: z.string() })),
+  /** Estimativas da mais recente para a mais antiga; revisões preservam histórico (RN-030, CA-022). */
+  estimates: z.array(effortEstimateSchema),
 });
 export type WorkItemDetail = z.infer<typeof workItemDetailSchema>;
 

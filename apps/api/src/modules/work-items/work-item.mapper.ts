@@ -1,5 +1,6 @@
 import {
   calculateDeliveryHealth,
+  type EffortEstimate,
   effectiveHealth,
   HEALTH_RANK,
   isClosedExecution,
@@ -30,9 +31,24 @@ export const workItemInclude = {
     orderBy: { addedAt: "asc" },
   },
   riskLinks: { where: openRiskWhere, select: { risk: { select: riskSignalSelect } } },
+  /** Estimativa vigente = revisão mais recente (RN-030). */
+  estimates: { orderBy: { estimatedAt: "desc" }, take: 1 },
 } satisfies Prisma.ExternalWorkItemInclude;
 
 export type WorkItemRow = Prisma.ExternalWorkItemGetPayload<{ include: typeof workItemInclude }>;
+
+export function toEstimateDto(row: Prisma.EffortEstimateGetPayload<object>): EffortEstimate {
+  return {
+    id: row.id,
+    estimatedHours: row.estimatedHours.toNumber(),
+    remainingHours: row.remainingHours.toNumber(),
+    confidence: row.confidence,
+    storyPoints: toNumberOrNull(row.storyPoints),
+    actualHours: toNumberOrNull(row.actualHours),
+    reason: row.reason,
+    estimatedAt: row.estimatedAt.toISOString(),
+  };
+}
 
 /**
  * `today` (fuso do workspace) e `now` entram de fora para que o cálculo seja determinístico e não
@@ -90,6 +106,7 @@ export function toWorkItemDto(row: WorkItemRow, today: string, now: Date): WorkI
       : null,
     releases: row.releaseMemberships.map((m) => ({ ...m.release, isRequired: m.isRequired })),
     openRisks,
+    estimate: row.estimates[0] ? toEstimateDto(row.estimates[0]) : null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
     version: row.version,

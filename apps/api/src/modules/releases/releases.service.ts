@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import {
   type addReleaseItemSchema,
   classifyHealth,
+  isClosedExecution,
   type createMilestoneSchema,
   type createReleaseSchema,
   OPEN_RISK_STATUSES,
@@ -326,8 +327,8 @@ export class ReleasesService {
 
   /**
    * Saúde, progresso, times e riscos (§12.2, §5.2.5). Bloqueio de item obrigatório bloqueia a release;
-   * item obrigatório atrasado ou em risco a coloca em risco. Progresso por contagem — horas só com
-   * estimativas (Etapa 4), sem inventar valores (§3.4).
+   * item obrigatório atrasado ou em risco a coloca em risco. Progresso por contagem e, em horas, só o
+   * esforço restante estimado; itens sem estimativa contam à parte (§3.4).
    */
   async withSummary(auth: AuthContext, rows: ReleaseRow[], today?: string): Promise<Release[]> {
     if (rows.length === 0) return [];
@@ -356,6 +357,8 @@ export class ReleasesService {
       );
       const risks = new Set([...direct.map((r) => r.id), ...[...required, ...optional].flatMap((i) => i.openRisks.map((r) => r.id))]);
       const done = (list: WorkItem[]) => list.filter((item) => item.executionStatus === "DONE").length;
+      const openRequired = required.filter((item) => !isClosedExecution(item.executionStatus));
+      const remaining = openRequired.flatMap((item) => item.tracking.remainingEffortHours ?? []);
 
       return {
         id: row.id,
@@ -376,7 +379,14 @@ export class ReleasesService {
           },
           day,
         ),
-        progress: { required: required.length, requiredDone: done(required), optional: optional.length, optionalDone: done(optional) },
+        progress: {
+          required: required.length,
+          requiredDone: done(required),
+          optional: optional.length,
+          optionalDone: done(optional),
+          requiredRemainingHours: Math.round(remaining.reduce((t, h) => t + h, 0) * 100) / 100,
+          requiredUnestimated: openRequired.length - remaining.length,
+        },
         teams: [...teams.values()].sort((a, b) => a.code.localeCompare(b.code)),
         openRiskCount: risks.size,
         createdAt: row.createdAt.toISOString(),

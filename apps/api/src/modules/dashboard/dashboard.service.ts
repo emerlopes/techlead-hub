@@ -9,6 +9,7 @@ import {
 } from "@tlh/shared-contracts";
 import { notFound } from "../../common/persistence";
 import { PrismaService } from "../../infrastructure/prisma/prisma.service";
+import { CapacityService } from "../capacity/capacity.service";
 import type { AuthContext } from "../identity/auth-context";
 import { ReleasesService } from "../releases/releases.service";
 import { SprintsService } from "../sprints/sprints.service";
@@ -27,7 +28,8 @@ function limited<T>(items: T[]): { total: number; items: T[] } {
 /**
  * Dashboard (§5): foco e atividades pessoais (§5.2.1, §5.2.2), entregas críticas, sprints ativas,
  * releases e refinamentos (§5.2.3–§5.2.6), na visão global ou contextual. Domínios separados (§3.2):
- * atividade pessoal nunca entra nos totais de entrega. Capacidade e recomendações chegam depois.
+ * atividade pessoal nunca entra nos totais de entrega. Capacidade (§5.2.7) vem do `CapacityService`;
+ * recomendações chegam depois.
  */
 @Injectable()
 export class DashboardService {
@@ -39,6 +41,7 @@ export class DashboardService {
     private readonly refinements: RefinementsService,
     private readonly sprints: SprintsService,
     private readonly releases: ReleasesService,
+    private readonly capacity: CapacityService,
   ) {}
 
   async get(auth: AuthContext, query: DashboardQuery): Promise<Dashboard> {
@@ -53,7 +56,7 @@ export class DashboardService {
     if (query.projectId && !project) throw notFound("Projeto");
 
     const context = { teamId: query.teamId, projectId: query.projectId };
-    const [rows, focus, activeTeams, activeProjects, activeDevelopers, deliveries, refinement, activeSprints, releases] = await Promise.all([
+    const [rows, focus, activeTeams, activeProjects, activeDevelopers, deliveries, refinement, activeSprints, releases, capacity] = await Promise.all([
       this.prisma.task.findMany({
         where: { ...this.tasks.contextWhere(auth, query), status: { in: ["TODO", "IN_PROGRESS", "BLOCKED"] } },
         include: taskInclude,
@@ -71,6 +74,7 @@ export class DashboardService {
       this.refinements.pipeline(auth, context),
       this.sprints.list(auth, { ...context, status: "ACTIVE" }),
       this.releases.list(auth, context),
+      this.capacity.dashboard(auth, context),
     ]);
 
     const open = rows.map((row) => toTaskDto(row, today)).sort(compareTasksDefault);
@@ -90,6 +94,7 @@ export class DashboardService {
       activeSprints,
       releases: releases.filter((r) => r.status === "PLANNED" || r.status === "IN_PROGRESS"),
       refinement: this.refinementSummary(refinement),
+      capacity,
       organization: { activeTeams, activeProjects, activeDevelopers },
     };
   }

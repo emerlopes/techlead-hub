@@ -24,6 +24,7 @@ import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle }
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/misc";
 import { ContextBar, ContextBarSkeleton } from "@/features/context/context-bar";
+import { CapacitySection } from "@/features/dashboard/capacity-section";
 import { DeliverySections } from "@/features/dashboard/delivery-sections";
 import { readContext } from "@/features/context/context.server";
 import { loadApi, requireMe, withQuery } from "@/lib/api/server";
@@ -147,6 +148,8 @@ function DashboardView({ data }: { data: Dashboard }) {
 
       <DeliverySections data={data} />
 
+      <CapacitySection data={data.capacity} />
+
       <Card>
         <CardHeader>
           <CardTitle>Organização</CardTitle>
@@ -161,9 +164,7 @@ function DashboardView({ data }: { data: Dashboard }) {
           <OrgLink href="/developers" icon={UserRound} label="Pessoas ativas" value={organization.activeDevelopers} />
         </CardContent>
       </Card>
-      <p className="text-xs text-muted-foreground">
-        Capacidade e recomendações entram no dashboard nas próximas etapas.
-      </p>
+      <p className="text-xs text-muted-foreground">Recomendações entram no dashboard numa próxima etapa.</p>
     </>
   );
 }

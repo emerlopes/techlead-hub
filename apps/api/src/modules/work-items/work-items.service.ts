@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import {
+  type createEstimateSchema,
   type createWorkItemSchema,
   DEFAULT_READINESS_CHECKLIST,
   isClosedExecution,
@@ -34,7 +35,7 @@ import { PrismaService } from "../../infrastructure/prisma/prisma.service";
 import { AuditService } from "../audit/audit.service";
 import type { AuthContext } from "../identity/auth-context";
 import { refinementInclude, toRefinementDto } from "./refinement.mapper";
-import { compareWorkItems, refSelect, toWorkItemDto, workItemInclude } from "./work-item.mapper";
+import { compareWorkItems, refSelect, toEstimateDto, toWorkItemDto, workItemInclude } from "./work-item.mapper";
 
 const ENTITY = "Item";
 type Tx = Prisma.TransactionClient;
@@ -140,7 +141,7 @@ export class WorkItemsService {
   }
 
   async get(auth: AuthContext, id: string): Promise<WorkItemDetail> {
-    const [row, sprintHistory, releaseHistory, tasks, today] = await Promise.all([
+    const [row, sprintHistory, releaseHistory, tasks, estimates, today] = await Promise.all([
       this.prisma.externalWorkItem.findFirst({
         where: { id, workspaceId: auth.workspaceId },
         include: {
@@ -167,6 +168,11 @@ export class WorkItemsService {
       this.prisma.taskWorkItem.findMany({
         where: { workItemId: id, task: { workspaceId: auth.workspaceId } },
         select: { task: { select: { id: true, title: true, status: true } } },
+      }),
+      this.prisma.effortEstimate.findMany({
+        where: { workItemId: id, workItem: { workspaceId: auth.workspaceId } },
+        orderBy: { estimatedAt: "desc" },
+        take: 100,
       }),
       workspaceToday(this.prisma, auth.workspaceId),
     ]);
@@ -218,7 +224,52 @@ export class WorkItemsService {
         removedAt: toIsoOrNull(m.removedAt),
       })),
       tasks: tasks.map((link) => link.task),
+      estimates: estimates.map(toEstimateDto),
     };
+  }
+
+  /**
+   * Estimativa ou revisão (§21): sempre uma linha nova (RN-030, CA-022). O esforço restante informado
+   * passa a valer no acompanhamento, com fotografia no histórico (RN-006). Itens encerrados não
+   * consomem capacidade (RN-035), então não recebem estimativas novas.
+   */
+  async addEstimate(auth: AuthContext, id: string, input: z.output<typeof createEstimateSchema>): Promise<WorkItemDetail> {
+    const { version, remainingHours, ...fields } = input;
+    const current = await this.prisma.externalWorkItem.findFirst({
+      where: { id, workspaceId: auth.workspaceId },
+      include: { tracking: true },
+    });
+    if (!current) throw notFound(ENTITY);
+    if (isClosedExecution(current.executionStatus)) {
+      throw ruleViolation("Itens concluídos ou cancelados não recebem novas estimativas (RN-035).", "estimatedHours");
+    }
+    const remaining = remainingHours ?? fields.estimatedHours;
+    const remainingChanged = remaining !== toNumberOrNull(current.tracking?.remainingEffortHours ?? null);
+
+    await this.prisma.$transaction(async (tx) => {
+      const result = await tx.externalWorkItem.updateMany({
+        where: { id, workspaceId: auth.workspaceId, version },
+        data: { version: { increment: 1 } },
+      });
+      if (result.count === 0) throw versionConflict(ENTITY);
+      await tx.effortEstimate.create({ data: { ...fields, remainingHours: remaining, workItemId: id, actorUserId: auth.userId } });
+      if (remainingChanged) {
+        await tx.deliveryTracking.update({ where: { workItemId: id }, data: { remainingEffortHours: remaining, lastCheckedAt: new Date() } });
+        await recordTrackingSnapshot(tx, id, auth.userId, ["remainingEffortHours"]);
+      }
+      await this.audit.record(
+        {
+          action: "work_item.estimated",
+          entityType: "work_item",
+          entityId: id,
+          workspaceId: auth.workspaceId,
+          actorUserId: auth.userId,
+          metadata: { fields: changedFields({ ...input }), fromVersion: version, confidence: fields.confidence },
+        },
+        tx,
+      );
+    });
+    return this.get(auth, id);
   }
 
   async create(auth: AuthContext, input: CreateInput): Promise<WorkItemDetail> {

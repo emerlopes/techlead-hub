@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { dashboardCapacitySchema } from "./capacity";
 import { contextRefSchema } from "./common";
 import { releaseSchema } from "./releases";
 import { sprintSchema } from "./sprints";
@@ -46,7 +47,7 @@ export const dashboardSchema = z.object({
     forecastAfterCommitment: limitedList(workItemSchema),
     stale: limitedList(workItemSchema),
   }),
-  /** Sprints ativas (§5.2.4). Capacidade e demanda chegam na Etapa 4. */
+  /** Sprints ativas (§5.2.4), com capacidade planejada e demanda estimada. */
   activeSprints: z.array(sprintSchema),
   /** Releases em aberto (§5.2.5). */
   releases: z.array(releaseSchema),
@@ -58,6 +59,8 @@ export const dashboardSchema = z.object({
     checklistIncomplete: z.number().int(),
     notReadyForImminentSprint: limitedList(refinementPipelineItemSchema),
   }),
+  /** Capacidade (§5.2.7) no período padrão a partir de hoje. */
+  capacity: dashboardCapacitySchema,
   organization: z.object({
     activeTeams: z.number().int(),
     activeProjects: z.number().int(),

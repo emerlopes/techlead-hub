@@ -4,14 +4,15 @@ import Link from "next/link";
 import { Progress } from "@/components/ui/progress";
 import { sprintStatus } from "@/lib/design-system/status";
 import { formatBusinessDate } from "@/lib/format";
+import { ContextLoadView } from "./context-load";
 import { ContextChip } from "./domain-tag";
 import { StatusBadge } from "./status-badge";
 
 /**
- * Sprint em uma linha (§5.2.4): time, período, entregas concluídas, bloqueios e riscos.
- * Capacidade planejada e demanda chegam com a Etapa 4 — não são estimadas aqui (§3.4).
+ * Sprint em uma linha (§5.2.4): time, período, entregas concluídas, bloqueios, riscos e capacidade
+ * planejada × demanda estimada. Sem estimativas, a demanda não é inventada (§3.4).
  */
-export function SprintSummary({ sprint }: { sprint: Sprint }) {
+export function SprintSummary({ sprint, showCapacity = true }: { sprint: Sprint; showCapacity?: boolean }) {
   const { total, done, blocked, openRisks } = sprint.counts;
   return (
     <div className="flex min-w-0 flex-col gap-2">
@@ -43,6 +44,9 @@ export function SprintSummary({ sprint }: { sprint: Sprint }) {
         )}
       </div>
       {total > 0 && <Progress value={done} max={total} tone="delivery" label={`${done} de ${total} entregas concluídas`} />}
+      {showCapacity && (sprint.status === "PLANNED" || sprint.status === "ACTIVE") && (
+        <ContextLoadView load={sprint.capacity} label="Capacidade planejada × demanda" dueLabel="está no escopo" />
+      )}
     </div>
   );
 }

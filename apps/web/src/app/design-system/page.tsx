@@ -1,4 +1,4 @@
-import type { HistoryEntry, Release, Sprint, Task, WorkItem } from "@tlh/shared-contracts";
+import type { Allocation, AvailabilityException, CapacityDayDto, HistoryEntry, Release, Sprint, Task, WorkItem } from "@tlh/shared-contracts";
 import type { Metadata } from "next";
 import {
   AlertOctagon,
@@ -44,8 +44,13 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 
+import { AbsenceItem } from "@/components/domain/absence-item";
+import { AllocationRow } from "@/components/domain/allocation-row";
 import { CapacityBar } from "@/components/domain/capacity-bar";
+import { CapacityDays } from "@/components/domain/capacity-days";
+import { CapacityIssues } from "@/components/domain/capacity-issues";
 import { ConfidenceMeter } from "@/components/domain/confidence-meter";
+import { ContextLoadView } from "@/components/domain/context-load";
 import { DateDelta } from "@/components/domain/date-delta";
 import { ContextChip, DomainTag } from "@/components/domain/domain-tag";
 import { FocusCard } from "@/components/domain/focus-card";
@@ -753,6 +758,9 @@ function DomainStatus() {
         <StatusGroup title="Gravidade" spec="§16.2" map={status.riskSeverity} />
         <StatusGroup title="Probabilidade" spec="§16.2" map={status.riskProbability} />
         <StatusGroup title="Bloqueio" spec="§16.4" map={status.blockingLevel} />
+        <StatusGroup title="Exceção de calendário" spec="§19.3" map={status.availabilityExceptionType} />
+        <StatusGroup title="Utilização planejada" spec="§25.5" map={status.capacityLevel} />
+        <StatusGroup title="Inconsistência de alocação" spec="§20.5 · CA-011" map={status.capacityIssueType} />
       </div>
       <Specimen title="Variantes de badge" note="subtle (padrão) · outline · solid · dot">
         <StatusBadge meta={status.healthStatus.AT_RISK} />
@@ -811,6 +819,23 @@ function Predictability() {
         <CapacityBar label="Carla Mendes · Checkout" demand={31} capacity={24} />
         <CapacityBar label="Diego Rocha · em férias" demand={8} capacity={0} />
       </Specimen>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Specimen title="ContextLoadView" note="capacidade alocada × demanda de time, projeto ou sprint" className="flex-col items-stretch">
+          <ContextLoadView load={sampleSprint.capacity} label="PAY · Pagamentos" />
+          <ContextLoadView
+            load={{ allocatedHours: 0, demand: { ...sampleSprint.capacity.demand, unestimatedItems: 0 }, utilization: null, level: "NO_CAPACITY" }}
+            label="AUTH · sem alocação"
+          />
+        </Specimen>
+        <Specimen title="CapacityDays" note="efetiva · indisponível (hachura) · sem jornada (tracejado)" className="flex-col items-stretch">
+          <CapacityDays days={sampleDays} />
+          <CapacityIssues issues={[{ type: "OVER_ALLOCATED", allocationIds: [] }, { type: "NOT_TEAM_MEMBER", allocationIds: [] }]} />
+        </Specimen>
+        <Specimen title="AllocationRow · AbsenceItem" note="§20 · §19.2" className="flex-col items-stretch">
+          <AllocationRow allocation={sampleAllocation} hours={12} />
+          <AbsenceItem absence={sampleAbsence} />
+        </Specimen>
+      </div>
     </Section>
   );
 }
@@ -938,10 +963,68 @@ const sampleWorkItem = {
   currentSprint: { id: ref(6), name: "Sprint 42", status: "ACTIVE", startDate: "2026-10-11", scopeType: "ORIGINAL" },
   releases: [],
   openRisks: [],
+  estimate: {
+    id: ref(9),
+    estimatedHours: 24,
+    remainingHours: 16,
+    confidence: "MEDIUM",
+    storyPoints: 5,
+    actualHours: null,
+    reason: null,
+    estimatedAt: "2026-10-08T12:00:00.000Z",
+  },
   createdAt: "2026-10-01T12:00:00.000Z",
   updatedAt: "2026-10-10T12:00:00.000Z",
   version: 3,
 } satisfies WorkItem;
+
+const sampleDays = [
+  ["2026-10-19", true, 8, 0],
+  ["2026-10-20", true, 8, 8],
+  ["2026-10-21", true, 8, 3],
+  ["2026-10-22", true, 8, 0],
+  ["2026-10-23", true, 8, 0],
+  ["2026-10-24", true, 0, 0],
+  ["2026-10-25", false, 0, 0],
+].map(([date, scheduled, nominal, unavailable]) => ({
+  date: date as string,
+  scheduled: scheduled as boolean,
+  nominal: nominal as number,
+  unavailable: unavailable as number,
+  effective: ((nominal as number) - (unavailable as number)) * 0.75,
+  allocated: date === "2026-10-20" ? 2 : ((nominal as number) - (unavailable as number)) * 0.6,
+})) satisfies CapacityDayDto[];
+
+const sampleAllocation = {
+  id: ref(10),
+  developer: { id: ref(11), name: "Ana Souza" },
+  team: pay,
+  project: chk,
+  allocationType: "PERCENTAGE",
+  value: 0.5,
+  period: null,
+  validFrom: "2026-10-01",
+  validUntil: null,
+  description: null,
+  active: true,
+  createdAt: "2026-10-01T12:00:00.000Z",
+  updatedAt: "2026-10-01T12:00:00.000Z",
+  version: 1,
+} satisfies Allocation;
+
+const sampleAbsence = {
+  id: ref(12),
+  developer: { id: ref(11), name: "Ana Souza" },
+  type: "TRAINING",
+  startDate: "2026-10-21",
+  endDate: "2026-10-21",
+  unavailableHours: 3,
+  description: "Treinamento interno",
+  cancelledAt: null,
+  createdAt: "2026-10-01T12:00:00.000Z",
+  updatedAt: "2026-10-01T12:00:00.000Z",
+  version: 1,
+} satisfies AvailabilityException;
 
 const sampleSprint = {
   id: ref(6),
@@ -953,6 +1036,12 @@ const sampleSprint = {
   status: "ACTIVE",
   closedAt: null,
   counts: { total: 8, done: 3, blocked: 1, openRisks: 2 },
+  capacity: {
+    allocatedHours: 96,
+    demand: { openItems: 5, estimatedItems: 4, unestimatedItems: 1, dueHours: 88, laterHours: 0, undatedHours: 0, totalHours: 88 },
+    utilization: 91.7,
+    level: "ATTENTION",
+  },
   createdAt: "2026-10-01T12:00:00.000Z",
   updatedAt: "2026-10-01T12:00:00.000Z",
   version: 2,
@@ -968,7 +1057,7 @@ const sampleRelease = {
   status: "IN_PROGRESS",
   closedAt: null,
   health: "ON_TRACK",
-  progress: { required: 5, requiredDone: 2, optional: 2, optionalDone: 0 },
+  progress: { required: 5, requiredDone: 2, optional: 2, optionalDone: 0, requiredRemainingHours: 34, requiredUnestimated: 1 },
   teams: [{ id: ref(8), code: "CORE", name: "Plataforma" }, pay],
   openRiskCount: 1,
   createdAt: "2026-10-01T12:00:00.000Z",

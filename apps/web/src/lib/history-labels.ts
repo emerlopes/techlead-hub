@@ -17,6 +17,7 @@ export const actionLabels: Record<string, string> = {
   "release.item_removed": "Item retirado do escopo",
   "risk.created": "Registrado",
   "risk.updated": "Atualizado",
+  "work_item.estimated": "Estimativa registrada",
 };
 
 /** Campos alterados, pelo nome do contrato. */
@@ -62,6 +63,12 @@ export const fieldLabels: Record<string, string> = {
   openQuestions: "dúvidas",
   pendingItems: "pendências",
   readyExceptionReason: "justificativa",
+  teamId: "time",
+  allocationType: "tipo de alocação",
+  value: "valor",
+  period: "periodicidade",
+  validFrom: "início da vigência",
+  validUntil: "fim da vigência",
 };
 
 export function describeFields(fields: readonly string[]): string {

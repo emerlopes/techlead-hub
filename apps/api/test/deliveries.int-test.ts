@@ -277,7 +277,15 @@ describe("Acompanhamento de entregas (integração)", () => {
 
       const detail = await api.get(`/releases/${release.id}`).expect(200);
       expect(detail.body.teams.map((t: { code: string }) => t.code)).toEqual(["CORE", "PAY"]);
-      expect(detail.body.progress).toEqual({ required: 1, requiredDone: 0, optional: 1, optionalDone: 0 });
+      // Sem estimativas, as horas não são inventadas: o item conta como não estimado (§3.4).
+      expect(detail.body.progress).toEqual({
+        required: 1,
+        requiredDone: 0,
+        optional: 1,
+        optionalDone: 0,
+        requiredRemainingHours: 0,
+        requiredUnestimated: 1,
+      });
       expect((await api.get(`/work-items/${a.id}`).expect(200)).body.releases).toHaveLength(2);
       expect((await api.get(`/releases?teamId=${pay.id}`).expect(200)).body).toHaveLength(2);
 

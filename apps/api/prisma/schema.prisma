@@ -37,6 +37,10 @@ model Workspace {
   risks           Risk[]
   journalEntries  JournalEntry[]
 
+  workSchedules          WorkSchedule[]
+  availabilityExceptions AvailabilityException[]
+  capacityAllocations    CapacityAllocation[]
+
   @@map("workspaces")
 }
 
@@ -166,6 +170,8 @@ model Team {
   riskLinks    RiskLink[]
   journalLinks JournalLink[]
 
+  allocations CapacityAllocation[]
+
   @@unique([workspaceId, code])
   @@map("teams")
 }
@@ -190,6 +196,8 @@ model Project {
   releases     Release[]
   riskLinks    RiskLink[]
   journalLinks JournalLink[]
+
+  allocations CapacityAllocation[]
 
   @@unique([workspaceId, code])
   @@map("projects")
@@ -227,6 +235,10 @@ model Developer {
   workspace Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
   teams     TeamDeveloper[]
   trackings DeliveryTracking[]
+
+  schedules   WorkSchedule[]
+  exceptions  AvailabilityException[]
+  allocations CapacityAllocation[]
 
   @@index([workspaceId, status])
   @@map("developers")
@@ -490,6 +502,7 @@ model ExternalWorkItem {
   tasks              TaskWorkItem[]
   riskLinks          RiskLink[]
   journalLinks       JournalLink[]
+  estimates          EffortEstimate[]
 
   @@unique([sourceId, externalKey])
   @@index([workspaceId, projectId])
@@ -831,4 +844,164 @@ model JournalLink {
   @@index([workItemId])
   @@index([riskId])
   @@map("journal_links")
+}
+
+// ---------------------------------------------------------------------------
+// Capacidade (Etapa 4, §54): jornadas e calendários (§19), ausências, alocações entre
+// times e projetos (§20) e estimativas (§21). Capacidade e demanda são derivadas na leitura
+// por funções puras (`capacity-rules.ts`); nada calculado é persistido.
+// ---------------------------------------------------------------------------
+
+/// §19.3.
+enum AvailabilityExceptionType {
+  VACATION
+  DAY_OFF
+  HOLIDAY
+  TRAINING
+  ABSENCE
+  EXTRA_SUPPORT
+  OTHER
+}
+
+/// §20.3.
+enum AllocationType {
+  PERCENTAGE
+  HOURS
+}
+
+/// Periodicidade explícita das alocações em horas (§20.3).
+enum AllocationPeriod {
+  DAY
+  WEEK
+}
+
+/// §21.4.
+enum EstimateConfidence {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+/// Jornada de trabalho de uma pessoa por período de vigência (§19.1). Vigências não se sobrepõem
+/// (EXCLUDE na migration); mudar a jornada encerra a anterior, preservando o histórico.
+model WorkSchedule {
+  id            String    @id @default(uuid()) @db.Uuid
+  workspaceId   String    @map("workspace_id") @db.Uuid
+  developerId   String    @map("developer_id") @db.Uuid
+  validFrom     DateTime  @map("valid_from") @db.Date
+  validUntil    DateTime? @map("valid_until") @db.Date
+  timezone      String    @db.VarChar(64)
+  /// Horas por dia da semana, de segunda (0) a domingo (6). `weekly_hours` é a soma, derivada.
+  weeklyPattern Decimal[] @map("weekly_pattern") @db.Decimal(4, 2)
+  /// Fator de foco entre 0 e 1, aplicado após os descontos (RN-028). Não mede produtividade (§18.4).
+  focusFactor   Decimal   @map("focus_factor") @db.Decimal(3, 2)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  version       Int       @default(1)
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  developer Developer @relation(fields: [developerId], references: [id], onDelete: Restrict)
+
+  @@index([developerId, validFrom])
+  @@map("work_schedules")
+}
+
+/// Indisponibilidade de uma pessoa ou, sem pessoa, feriado do calendário do workspace (§19.2).
+/// Cancelar preserva o registro (`cancelled_at`).
+model AvailabilityException {
+  id               String                    @id @default(uuid()) @db.Uuid
+  workspaceId      String                    @map("workspace_id") @db.Uuid
+  /// `null` = feriado que vale para todas as pessoas (calendário do workspace).
+  developerId      String?                   @map("developer_id") @db.Uuid
+  type             AvailabilityExceptionType
+  startDate        DateTime                  @map("start_date") @db.Date
+  endDate          DateTime                  @map("end_date") @db.Date
+  /// Horas indisponíveis por dia; `null` = dia inteiro. Nunca desconta mais que a jornada do dia.
+  unavailableHours Decimal?                  @map("unavailable_hours") @db.Decimal(4, 2)
+  /// Motivo genérico, sem informação pessoal sensível (§19.4, §44.5).
+  description      String?                   @db.VarChar(200)
+  cancelledAt      DateTime?                 @map("cancelled_at") @db.Timestamptz(3)
+  createdAt        DateTime                  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime                  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  version          Int                       @default(1)
+
+  workspace Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  developer Developer? @relation(fields: [developerId], references: [id], onDelete: Restrict)
+
+  @@index([developerId, startDate])
+  @@index([workspaceId, startDate])
+  @@map("availability_exceptions")
+}
+
+/// Parcela da capacidade efetiva de uma pessoa reservada para um time, um projeto, os dois ou,
+/// sem nenhum, uma reserva geral (§20). Não representa horas trabalhadas (§20.5, RN-036).
+model CapacityAllocation {
+  id              String            @id @default(uuid()) @db.Uuid
+  workspaceId     String            @map("workspace_id") @db.Uuid
+  developerId     String            @map("developer_id") @db.Uuid
+  teamId          String?           @map("team_id") @db.Uuid
+  projectId       String?           @map("project_id") @db.Uuid
+  allocationType  AllocationType    @map("allocation_type")
+  /// Percentual entre 0 e 1 (§35.7) ou horas por `period`.
+  allocationValue Decimal           @map("allocation_value") @db.Decimal(7, 4)
+  period          AllocationPeriod?
+  validFrom       DateTime          @map("valid_from") @db.Date
+  validUntil      DateTime?         @map("valid_until") @db.Date
+  description     String?           @db.VarChar(300)
+  createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+  version         Int               @default(1)
+
+  workspace Workspace                   @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  developer Developer                   @relation(fields: [developerId], references: [id], onDelete: Restrict)
+  team      Team?                       @relation(fields: [teamId], references: [id], onDelete: Restrict)
+  project   Project?                    @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  history   CapacityAllocationHistory[]
+
+  @@index([developerId, validFrom])
+  @@index([teamId])
+  @@index([projectId])
+  @@map("capacity_allocations")
+}
+
+/// Fotografia da alocação após cada mudança (§20.5 "preservar histórico", RN-038). Somente inserção.
+model CapacityAllocationHistory {
+  id              String            @id @default(uuid()) @db.Uuid
+  allocationId    String            @map("allocation_id") @db.Uuid
+  changedAt       DateTime          @default(now()) @map("changed_at") @db.Timestamptz(3)
+  actorUserId     String?           @map("actor_user_id") @db.Uuid
+  changedFields   String[]          @map("changed_fields")
+  teamId          String?           @map("team_id") @db.Uuid
+  projectId       String?           @map("project_id") @db.Uuid
+  allocationType  AllocationType    @map("allocation_type")
+  allocationValue Decimal           @map("allocation_value") @db.Decimal(7, 4)
+  period          AllocationPeriod?
+  validFrom       DateTime          @map("valid_from") @db.Date
+  validUntil      DateTime?         @map("valid_until") @db.Date
+
+  allocation CapacityAllocation @relation(fields: [allocationId], references: [id], onDelete: Cascade)
+
+  @@index([allocationId, changedAt])
+  @@map("capacity_allocation_history")
+}
+
+/// Estimativa de esforço de um item (§21). Cada revisão é uma nova linha (RN-030, CA-022).
+model EffortEstimate {
+  id             String             @id @default(uuid()) @db.Uuid
+  workItemId     String             @map("work_item_id") @db.Uuid
+  estimatedHours Decimal            @map("estimated_hours") @db.Decimal(7, 2)
+  remainingHours Decimal            @map("remaining_hours") @db.Decimal(7, 2)
+  confidence     EstimateConfidence
+  /// Referência adicional; nunca convertida em horas (§21.5).
+  storyPoints    Decimal?           @map("story_points") @db.Decimal(5, 1)
+  /// Esforço realizado, opcional e informado manualmente (§21.3).
+  actualHours    Decimal?           @map("actual_hours") @db.Decimal(7, 2)
+  reason         String?            @db.VarChar(500)
+  estimatedAt    DateTime           @default(now()) @map("estimated_at") @db.Timestamptz(3)
+  actorUserId    String?            @map("actor_user_id") @db.Uuid
+
+  workItem ExternalWorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+
+  @@index([workItemId, estimatedAt])
+  @@map("effort_estimates")
 }

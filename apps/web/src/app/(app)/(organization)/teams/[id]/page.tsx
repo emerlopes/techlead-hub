@@ -16,6 +16,7 @@ import { AddAssociationForm } from "@/features/organization/add-association-form
 import { AssociationList } from "@/features/organization/association-list";
 import { ContextForm } from "@/features/organization/context-form";
 import { StatusActions } from "@/features/organization/status-actions";
+import { CapacityCardSkeleton, TeamCapacityCard } from "@/features/capacity/context-cards";
 import { DeliveriesCard, DeliveriesCardSkeleton } from "@/features/work-items/deliveries-card";
 import { loadApi, requireMe, withQuery } from "@/lib/api/server";
 import { developerStatus, projectStatus, teamStatus } from "@/lib/design-system/status";
@@ -147,6 +148,10 @@ async function TeamDetail({ params }: Pick<PageProps<"/teams/[id]">, "params">) 
             />
           </CardContent>
         </Card>
+
+        <Suspense fallback={<CapacityCardSkeleton />}>
+          <TeamCapacityCard teamId={t.id} />
+        </Suspense>
 
         <Suspense fallback={<DeliveriesCardSkeleton />}>
           <DeliveriesCard filter={{ teamId: t.id }} description="Itens executados pelo time, de qualquer projeto." />

@@ -2,7 +2,9 @@ import { Injectable } from "@nestjs/common";
 import {
   type addSprintItemSchema,
   type closeSprintSchema,
+  type ContextLoad,
   type createSprintSchema,
+  isClosedExecution,
   OPEN_RISK_STATUSES,
   type Sprint,
   type SprintDetail,
@@ -27,6 +29,7 @@ import {
 } from "../../common/persistence";
 import { PrismaService } from "../../infrastructure/prisma/prisma.service";
 import { AuditService } from "../audit/audit.service";
+import { CapacityService } from "../capacity/capacity.service";
 import type { AuthContext } from "../identity/auth-context";
 import { refSelect } from "../work-items/work-item.mapper";
 import { WorkItemsService } from "../work-items/work-items.service";
@@ -43,6 +46,13 @@ const STATUS_RANK: Record<SprintStatus, number> = { ACTIVE: 0, PLANNED: 1, CLOSE
 const sprintInclude = { team: { select: refSelect } } satisfies Prisma.SprintInclude;
 type SprintRow = Prisma.SprintGetPayload<{ include: typeof sprintInclude }>;
 
+const emptyLoad: ContextLoad = {
+  allocatedHours: 0,
+  demand: { openItems: 0, estimatedItems: 0, unestimatedItems: 0, dueHours: 0, laterHours: 0, undatedHours: 0, totalHours: 0 },
+  utilization: null,
+  level: "NO_CAPACITY",
+};
+
 const inScope = (m: MembershipRow) => m.exitedAt === null || (m.exitReason !== null && CLOSING_EXITS.includes(m.exitReason));
 
 /** Sprints (§11, §34.8): ciclos, escopo e histórico de movimentações (RN-010). */
@@ -52,6 +62,7 @@ export class SprintsService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly workItems: WorkItemsService,
+    private readonly capacity: CapacityService,
   ) {}
 
   async list(auth: AuthContext, query: z.output<typeof sprintListQuerySchema>): Promise<Sprint[]> {
@@ -321,6 +332,21 @@ export class SprintsService {
     const scope = memberships.filter(inScope);
     const items = await this.workItems.loadMany(auth, { id: { in: [...new Set(scope.map((m) => m.workItemId))] } }, day);
     const byId = new Map<string, WorkItem>(items.map((item) => [item.id, item]));
+    // Demanda estimada = esforço restante dos itens em aberto do escopo (RN-035).
+    const loads = await this.capacity.sprintLoads(
+      auth,
+      rows.map((row) => ({
+        id: row.id,
+        teamId: row.teamId,
+        startDate: toIsoDate(row.startDate) ?? "",
+        endDate: toIsoDate(row.endDate) ?? "",
+        remaining: scope
+          .filter((m) => m.sprintId === row.id)
+          .flatMap((m) => byId.get(m.workItemId) ?? [])
+          .filter((item) => !isClosedExecution(item.executionStatus))
+          .map((item) => item.tracking.remainingEffortHours),
+      })),
+    );
 
     return rows.map((row) => {
       const own = scope.filter((m) => m.sprintId === row.id);
@@ -347,6 +373,7 @@ export class SprintsService {
           blocked: sprintItems.filter((item) => item.tracking.health === "BLOCKED").length,
           openRisks: risks.size,
         },
+        capacity: loads.get(row.id) ?? emptyLoad,
         createdAt: row.createdAt.toISOString(),
         updatedAt: row.updatedAt.toISOString(),
         version: row.version,

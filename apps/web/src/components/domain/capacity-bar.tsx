@@ -1,3 +1,4 @@
+import { UTILIZATION_ATTENTION_PERCENT } from "@tlh/shared-contracts";
 import { cn } from "@/lib/utils";
 
 const h = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });
@@ -20,7 +21,7 @@ export function CapacityBar({
 }) {
   const noCapacity = capacity <= 0;
   const u = noCapacity ? 0 : (demand / capacity) * 100;
-  const tone = noCapacity ? "neutral" : u > 100 ? "danger" : u >= 85 ? "attention" : "capacity";
+  const tone = noCapacity ? "neutral" : u > 100 ? "danger" : u >= UTILIZATION_ATTENTION_PERCENT ? "attention" : "capacity";
   const fillW = noCapacity ? 0 : Math.min(u, 100);
   const overW = u > 100 ? Math.min(u - 100, 50) : 0;
 

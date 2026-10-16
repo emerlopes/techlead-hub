@@ -16,6 +16,7 @@ import { AddAssociationForm } from "@/features/organization/add-association-form
 import { AssociationList } from "@/features/organization/association-list";
 import { DeveloperForm } from "@/features/organization/developer-form";
 import { StatusActions } from "@/features/organization/status-actions";
+import { CapacityCardSkeleton, DeveloperCapacityCard } from "@/features/capacity/context-cards";
 import { DeliveriesCard, DeliveriesCardSkeleton } from "@/features/work-items/deliveries-card";
 import { loadApi, requireMe } from "@/lib/api/server";
 import { developerStatus, teamStatus } from "@/lib/design-system/status";
@@ -129,11 +130,12 @@ async function DeveloperView({ params }: Pick<PageProps<"/developers/[id]">, "pa
                 ))}
               </ul>
             )}
-            <p className="mt-3 text-xs text-muted-foreground">
-              Disponibilidade e alocações chegam com o módulo de capacidade (Etapa 4).
-            </p>
           </CardContent>
         </Card>
+
+        <Suspense fallback={<CapacityCardSkeleton />}>
+          <DeveloperCapacityCard developerId={d.id} />
+        </Suspense>
 
         <Suspense fallback={<DeliveriesCardSkeleton />}>
           <DeliveriesCard

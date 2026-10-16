@@ -1,6 +1,7 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query } from "@nestjs/common";
 import {
   createCheckItemSchema,
+  createEstimateSchema,
   createExternalSourceSchema,
   createWorkItemSchema,
   type ExternalSource,
@@ -66,6 +67,16 @@ export class WorkItemsController {
   @HttpCode(200)
   check(@CurrentAuth() auth: AuthContext, @Param("id", UuidParamPipe) id: string): Promise<WorkItemDetail> {
     return this.workItems.check(auth, id);
+  }
+
+  /** Estimativa ou revisão (§21). Acréscimo ao §36.7. */
+  @Post(":id/estimates")
+  addEstimate(
+    @CurrentAuth() auth: AuthContext,
+    @Param("id", UuidParamPipe) id: string,
+    @Body(new ZodValidationPipe(createEstimateSchema)) body: z.output<typeof createEstimateSchema>,
+  ): Promise<WorkItemDetail> {
+    return this.workItems.addEstimate(auth, id, body);
   }
 
   @Patch(":id/refinement")

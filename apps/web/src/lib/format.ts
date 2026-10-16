@@ -36,3 +36,21 @@ const hours = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 });
 export function formatHours(value: number | null): string {
   return value === null ? "—" : `${hours.format(value)} h`;
 }
+
+const percent = new Intl.NumberFormat("pt-BR", { style: "percent", maximumFractionDigits: 1 });
+
+/** Fração 0–1 como percentual em pt-BR ("75%"). */
+export function formatPercent(fraction: number): string {
+  return percent.format(fraction);
+}
+
+/** Valor de uma alocação (§20.3): "50%" ou "10 h por semana". */
+export function formatAllocationValue(a: { allocationType: "PERCENTAGE" | "HOURS"; value: number; period: "DAY" | "WEEK" | null }): string {
+  if (a.allocationType === "PERCENTAGE") return formatPercent(a.value);
+  return `${formatHours(a.value)} ${a.period === "DAY" ? "por dia" : "por semana"}`;
+}
+
+/** Período de datas de negócio: "19 de out – 25 de out" ou um só dia. */
+export function formatBusinessRange(from: string, to: string): string {
+  return from === to ? formatBusinessDate(from) : `${formatBusinessDate(from)} – ${formatBusinessDate(to)}`;
+}

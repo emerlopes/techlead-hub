@@ -3,16 +3,19 @@ import { ShieldAlert } from "lucide-react";
 import Link from "next/link";
 import { Progress } from "@/components/ui/progress";
 import { healthStatus, releaseStatus } from "@/lib/design-system/status";
+import { formatHours } from "@/lib/format";
 import { DateDelta } from "./date-delta";
 import { ContextChip } from "./domain-tag";
 import { StatusBadge } from "./status-badge";
 
 /**
- * Release em uma linha (§5.2.5): projeto, compromisso × previsão, saúde, pendências e riscos. Times
+ * Release em uma linha (§5.2.5): projeto, compromisso × previsão, saúde, pendências (em contagem e,
+ * com estimativas, em horas) e riscos. Times
  * participantes aparecem sem duplicar a release (§12.5).
  */
 export function ReleaseSummary({ release }: { release: Release }) {
-  const { required, requiredDone, optional, optionalDone } = release.progress;
+  const { required, requiredDone, optional, optionalDone, requiredRemainingHours, requiredUnestimated } = release.progress;
+  const pending = required - requiredDone;
   return (
     <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
       <div className="flex min-w-0 flex-1 flex-col gap-2">
@@ -33,6 +36,10 @@ export function ReleaseSummary({ release }: { release: Release }) {
               {optionalDone}/{optional} opcionais
             </span>
           )}
+          {pending > 0 && requiredUnestimated < pending && (
+            <span className="tabular">{formatHours(requiredRemainingHours)} restantes</span>
+          )}
+          {requiredUnestimated > 0 && <span className="font-medium text-attention-fg">{requiredUnestimated} sem estimativa</span>}
           {release.teams.map((t) => (
             <ContextChip key={t.id} code={t.code} name={t.name} />
           ))}

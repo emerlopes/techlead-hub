@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatBusinessDate, formatDateTime, formatHours } from "./format";
+import { formatAllocationValue, formatBusinessDate, formatBusinessRange, formatDateTime, formatHours, formatPercent } from "./format";
 import { listTimeZones } from "./time-zones";
 
 describe("formatDateTime", () => {
@@ -29,5 +29,19 @@ describe("formatHours", () => {
   it("usa vírgula decimal e travessão sem dado", () => {
     expect(formatHours(1.5)).toBe("1,5 h");
     expect(formatHours(null)).toBe("—");
+  });
+});
+
+describe("capacidade", () => {
+  it("formata percentuais e alocações em pt-BR (§20.3)", () => {
+    expect(formatPercent(0.75)).toBe("75%");
+    expect(formatAllocationValue({ allocationType: "PERCENTAGE", value: 0.5, period: null })).toBe("50%");
+    expect(formatAllocationValue({ allocationType: "HOURS", value: 2.5, period: "DAY" })).toBe("2,5 h por dia");
+    expect(formatAllocationValue({ allocationType: "HOURS", value: 10, period: "WEEK" })).toBe("10 h por semana");
+  });
+
+  it("formata períodos de um ou mais dias", () => {
+    expect(formatBusinessRange("2026-10-19", "2026-10-19")).toBe(formatBusinessDate("2026-10-19"));
+    expect(formatBusinessRange("2026-10-19", "2026-10-25")).toContain("–");
   });
 });

@@ -19,6 +19,7 @@ import { z } from "zod";
 import { ApiUnavailable } from "@/components/app/api-unavailable";
 import { DetailSkeleton } from "@/components/app/page-skeletons";
 import { PageHeader } from "@/components/app/page-header";
+import { ConfidenceMeter } from "@/components/domain/confidence-meter";
 import { DateDelta } from "@/components/domain/date-delta";
 import { ContextChip, DomainTag } from "@/components/domain/domain-tag";
 import { HealthIndicator } from "@/components/domain/health-indicator";
@@ -29,6 +30,7 @@ import { Alert } from "@/components/ui/alert";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { JournalCard } from "@/features/journal/journal-card";
 import { RiskListCard } from "@/features/risks/risk-list-card";
+import { EstimatePanel } from "@/features/work-items/estimate-panel";
 import { RefinementPanel } from "@/features/work-items/refinement-panel";
 import { TrackingHistory } from "@/features/work-items/tracking-history";
 import { WorkItemActions } from "@/features/work-items/work-item-actions";
@@ -166,6 +168,19 @@ async function WorkItemView({ params }: Pick<PageProps<"/work-items/[id]">, "par
 
           <Card>
             <CardHeader>
+              <CardTitle>Estimativas</CardTitle>
+              <CardDescription>Horas são a unidade da capacidade; revisões preservam histórico (RN-030, CA-022).</CardDescription>
+              <CardAction>
+                <DomainTag domain="capacity" />
+              </CardAction>
+            </CardHeader>
+            <CardContent>
+              <EstimatePanel workItemId={w.id} version={w.version} estimates={w.estimates} closed={closed} timeZone={timeZone} />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
               <CardTitle>Histórico do acompanhamento</CardTitle>
               <CardDescription>Fotografia após cada mudança de situação, previsão, responsável ou time (RN-006).</CardDescription>
             </CardHeader>
@@ -213,7 +228,10 @@ function Summary({ item, timeZone }: { item: WorkItemDetail; timeZone: string })
           <dt className="text-muted-foreground">Responsável</dt>
           <dd>{t.developer?.name ?? "—"}</dd>
           <dt className="text-muted-foreground">Restante</dt>
-          <dd className="tabular">{formatHours(t.remainingEffortHours)}</dd>
+          <dd className="flex flex-wrap items-center gap-2 tabular">
+            {formatHours(t.remainingEffortHours)}
+            {item.estimate && <ConfidenceMeter value={item.estimate.confidence} showLabel={false} />}
+          </dd>
           <dt className="text-muted-foreground">Verificação</dt>
           <dd className="flex flex-col gap-0.5">
             <StaleIndicator lastCheckedDaysAgo={daysSince(t.lastCheckedAt)} />

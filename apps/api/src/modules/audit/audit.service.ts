@@ -29,6 +29,7 @@ export type AuditAction =
   | "work_item.created"
   | "work_item.updated"
   | "work_item.checked"
+  | "work_item.estimated"
   | "refinement.updated"
   | "refinement_check_item.created"
   | "refinement_check_item.updated"
@@ -50,7 +51,16 @@ export type AuditAction =
   | "risk.created"
   | "risk.updated"
   | "journal_entry.created"
-  | "journal_entry.updated";
+  | "journal_entry.updated"
+  | "work_schedule.created"
+  | "work_schedule.updated"
+  | "work_schedule.ended"
+  | "availability_exception.created"
+  | "availability_exception.updated"
+  | "availability_exception.cancelled"
+  | "capacity_allocation.created"
+  | "capacity_allocation.updated"
+  | "capacity_allocation.deleted";
 
 export type AuditInput = {
   action: AuditAction;
@@ -72,7 +82,10 @@ export type AuditInput = {
     | "release"
     | "release_milestone"
     | "risk"
-    | "journal_entry";
+    | "journal_entry"
+    | "work_schedule"
+    | "availability_exception"
+    | "capacity_allocation";
   entityId?: string;
   workspaceId?: string;
   actorUserId?: string;
