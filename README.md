@@ -1,36 +1,68 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Tech Lead Hub
 
-## Getting Started
+Aplicação pessoal para um Tech Lead acompanhar atividades próprias, entregas de vários times,
+capacidade e previsões. Especificação completa em [`docs/main.md`](docs/main.md).
 
-First, run the development server:
+**Estado atual:** Etapa 1 — Fundação técnica (§54) concluída. Ver
+[`docs/architecture/fundacao-tecnica.md`](docs/architecture/fundacao-tecnica.md).
+
+## Estrutura (§33)
+
+| Caminho                     | Conteúdo                                                        |
+| --------------------------- | --------------------------------------------------------------- |
+| `apps/web`                  | Next.js 16 (App Router) — interface e design system             |
+| `apps/api`                  | NestJS 11 + Prisma 7 + PostgreSQL — autenticação, workspace     |
+| `apps/planning-worker`      | Worker BullMQ (Redis) — base para previsões e simulações        |
+| `packages/shared-contracts` | Schemas Zod e tipos compartilhados entre web e API              |
+| `packages/config`           | `tsconfig` e ESLint compartilhados                              |
+| `infrastructure/`           | Dockerfiles, init do PostgreSQL e scripts                       |
+
+## Pré-requisitos
+
+- Node.js 22+ com Corepack (`corepack enable` deixa o comando `pnpm` disponível)
+- Docker com Docker Compose
+
+## Desenvolvimento local
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
+pnpm env:init       # cria .env com senha aleatória para o PostgreSQL
+pnpm db:up          # PostgreSQL e Redis no Docker (apenas loopback)
+pnpm db:deploy      # aplica as migrations
+pnpm dev            # web :3000, API :4000 e worker
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abra http://localhost:3000. Na primeira vez você é levado à **configuração inicial** do
+proprietário (só pode ser feita uma vez; não há cadastro público). O showcase do design system
+fica em `/design-system`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Stack completa no Docker
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+pnpm env:init
+docker compose up --build
+```
 
-## Learn More
+Sobe `postgres`, `redis`, `migrate` (aplica migrations e encerra), `api`, `planning-worker` e
+`web` em http://localhost:3000. Só a web é publicada (no loopback); API, banco e Redis ficam na
+rede interna — banco e Redis também em `127.0.0.1` para uso a partir do host.
 
-To learn more about Next.js, take a look at the following resources:
+## Qualidade
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+pnpm lint
+pnpm typecheck
+pnpm test               # unitários (Vitest)
+pnpm test:integration   # API + PostgreSQL real; usa DATABASE_URL_TEST
+pnpm build
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+O CI (`.github/workflows/ci.yml`) executa todos esses passos e o build das imagens Docker.
 
-## Deploy on Vercel
+## Banco de dados
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+pnpm db:migrate     # cria nova migration a partir de apps/api/prisma/schema.prisma (dev)
+pnpm db:deploy      # aplica migrations pendentes
+pnpm db:studio      # Prisma Studio
+```

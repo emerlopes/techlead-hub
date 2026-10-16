@@ -1,7 +1,9 @@
 # Tech Lead Hub — Design System v1.0
 
-Referência viva: rode `npm run dev` e abra **`/design-system`**.
+Referência viva: rode `pnpm dev` e abra **`/design-system`**.
 Responde ao item **§56.7 Interface → Design system** do [documento principal](./main.md).
+
+Caminhos relativos a `apps/web/src`.
 
 | Camada | Onde |
 | --- | --- |
@@ -147,7 +149,21 @@ Novos enums: adicionar ao arquivo com `satisfies StatusMap<string>`; marcar `ind
 | `JournalEntry` | Linha do tempo do Diário de Bordo com ícone por categoria e chips de contexto. |
 | `DomainTag`, `ContextChip` | Identidade do domínio; códigos de time/projeto em mono (`CHK`, `PAY`). |
 
-## 8. Padrões de interface
+## 8. Shell da aplicação (`components/app`)
+
+| Componente | Notas |
+| --- | --- |
+| `Brand` | Marca + link para o início. No mobile, o texto pode ser ocultado com `sr-only`. |
+| `AppNav` | Navegação principal; item ativo com `aria-current="page"`; rótulos viram `sr-only` no mobile. |
+| `PageHeader` | Título de página (`text-xl`), eyebrow opcional com o contexto e descrição. |
+| `ApiUnavailable` | Estado de falha padrão quando a API não responde: `Alert tone="danger"` + `RetryButton`. |
+| `FormError` | Erro geral de formulário a partir de `ApiError`. Bloqueio (`TOO_MANY_ATTEMPTS`) e conflito de versão (`CONFLICT`) usam `warning`; demais, `danger`. |
+| `RetryButton` | `router.refresh()` com estado de carregamento; `label` customizável (“Recarregar” em conflitos). |
+| `PasswordInput` (`features/identity`) | `Input` com botão de mostrar/ocultar (`aria-pressed`). |
+
+Formulários que falam com a API usam `useApiForm` (`lib/api/use-api-form.ts`): valida no navegador com o schema de `@tlh/shared-contracts`, mapeia `details` para o `error` de cada `Field` e expõe `pending`.
+
+## 9. Padrões de interface
 
 - **Estados obrigatórios (§58):** toda tela tem carregamento (`Skeleton`), vazio (`EmptyState`) e falha (`Alert tone="danger"`).
 - **Previsões obsoletas (RNF-021, CA-031):** `Alert tone="warning"` com ação “Recalcular” no topo do contexto + `StatusBadge forecastState.STALE` no cabeçalho.
@@ -157,7 +173,7 @@ Novos enums: adicionar ao arquivo com `satisfies StatusMap<string>`; marcar `ind
 - **Tabelas de entregas:** item (chave externa em mono + link externo) · responsável · saúde · `DateDelta` · confiança · verificação.
 - **Dashboard (§5):** KPIs no topo → foco principal + capacidade à esquerda → entregas críticas à direita. Ver seção “Composição” no showcase.
 
-## 9. Acessibilidade
+## 10. Acessibilidade
 
 - Contraste AA para texto (`*-fg` sobre `*-subtle`) nos dois temas.
 - Status nunca dependem só de cor (ícone + texto; `title` com descrição em `healthStatus`).
@@ -165,7 +181,7 @@ Novos enums: adicionar ao arquivo com `satisfies StatusMap<string>`; marcar `ind
 - `role="progressbar"`/`role="meter"` com `aria-value*` em barras; `role="alert"` em erros.
 - Ícones decorativos com `aria-hidden`; botões só-ícone com `aria-label`.
 
-## 10. Pendências
+## 11. Pendências
 
 - Componentes com Radix (Dialog, Popover, DropdownMenu, Tooltip, Command ⌘K) — adicionar via `npx shadcn add …` quando os módulos precisarem; os tokens já são compatíveis.
 - Navegação definitiva (sidebar dos 20 módulos) e gráficos (burndown, histórico de previsões) — a definir junto com os fluxos detalhados de §56.7.

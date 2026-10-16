@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Lint, tipos, testes e build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: tech_lead_hub_test
+          POSTGRES_USER: tech_lead_hub
+          POSTGRES_PASSWORD: ci-only-password
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U tech_lead_hub"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      # Credenciais descartáveis, válidas só no container efêmero do CI.
+      DATABASE_URL: postgresql://tech_lead_hub:ci-only-password@127.0.0.1:5432/tech_lead_hub
+      DATABASE_URL_TEST: postgresql://tech_lead_hub:ci-only-password@127.0.0.1:5432/tech_lead_hub_test
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Contratos compartilhados
+        run: pnpm --filter @tlh/shared-contracts build
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - name: Testes unitários
+        run: pnpm test
+      - name: Migrations + testes de integração
+        run: pnpm test:integration
+      - run: pnpm build
+
+  docker:
+    name: Imagens Docker
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build das imagens do Compose
+        env:
+          POSTGRES_PASSWORD: ci-only-password
+        run: docker compose build
