@@ -7,6 +7,7 @@ import {
   taskPriorities,
   taskTypes,
   updateTaskSchema,
+  type WorkItemRef,
 } from "@tlh/shared-contracts";
 import { Save } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -15,15 +16,12 @@ import { FormError } from "@/components/app/form-error";
 import { RetryButton } from "@/components/app/retry-button";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Checkbox, Field, Input, Label, Select, Textarea } from "@/components/ui/input";
+import { CheckboxGroup } from "@/components/ui/checkbox-group";
+import { Field, Input, Select, Textarea } from "@/components/ui/input";
 import { apiMutation } from "@/lib/api/client";
 import { useApiForm } from "@/lib/api/use-api-form";
+import { hoursInput, hoursOrNull } from "@/lib/form-data";
 import { priority, taskType } from "@/lib/design-system/status";
-
-function hoursOrNull(value: FormDataEntryValue | null): number | null {
-  const text = String(value ?? "").trim().replace(",", ".");
-  return text === "" ? null : Number(text);
-}
 
 /**
  * Criação e edição de atividade pessoal (§6.2). A situação muda pelas ações dedicadas; aqui ficam
@@ -33,11 +31,14 @@ export function TaskForm({
   task,
   teams,
   projects,
+  workItems,
 }: {
   task?: Task;
   /** Contextos que podem ser vinculados (ativos + os já vinculados). */
   teams: ContextRef[];
   projects: ContextRef[];
+  /** Itens abertos + os já vinculados. Concluir a atividade não resolve o item (§6.8). */
+  workItems: WorkItemRef[];
 }) {
   const router = useRouter();
   const [saved, setSaved] = useState(false);
@@ -55,6 +56,7 @@ export function TaskForm({
       ...(task?.status === "BLOCKED" && { blockedReason: data.get("blockedReason") }),
       teamIds: data.getAll("teamIds"),
       projectIds: data.getAll("projectIds"),
+      workItemIds: data.getAll("workItemIds"),
       ...(task && { version: task.version }),
     }),
     submit: (input) => {
@@ -73,6 +75,7 @@ export function TaskForm({
   const err = form.fieldErrors;
   const linkedTeams = new Set(task?.teams.map((t) => t.id));
   const linkedProjects = new Set(task?.projects.map((p) => p.id));
+  const linkedWorkItems = new Set(task?.workItems.map((w) => w.id));
 
   return (
     <form key={task?.version} onSubmit={form.onSubmit} noValidate className="flex flex-col gap-4">
@@ -123,7 +126,7 @@ export function TaskForm({
             id="task-estimate"
             name="estimatedHours"
             inputMode="decimal"
-            defaultValue={task?.estimatedHours?.toString().replace(".", ",") ?? ""}
+            defaultValue={hoursInput(task?.estimatedHours)}
             aria-invalid={Boolean(err.estimatedHours)}
           />
         </Field>
@@ -133,7 +136,7 @@ export function TaskForm({
               id="task-actual"
               name="actualHours"
               inputMode="decimal"
-              defaultValue={task.actualHours?.toString().replace(".", ",") ?? ""}
+              defaultValue={hoursInput(task.actualHours)}
               aria-invalid={Boolean(err.actualHours)}
             />
           </Field>
@@ -141,23 +144,32 @@ export function TaskForm({
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <ContextChecklist
+        <CheckboxGroup
           legend="Times"
           name="teamIds"
-          options={teams}
+          options={teams.map((t) => ({ id: t.id, code: t.code, label: t.name }))}
           checked={linkedTeams}
           empty="Nenhum time ativo."
           error={err.teamIds}
         />
-        <ContextChecklist
+        <CheckboxGroup
           legend="Projetos"
           name="projectIds"
-          options={projects}
+          options={projects.map((p) => ({ id: p.id, code: p.code, label: p.name }))}
           checked={linkedProjects}
           empty="Nenhum projeto disponível."
           error={err.projectIds}
         />
       </div>
+
+      <CheckboxGroup
+        legend="Itens externos acompanhados"
+        name="workItemIds"
+        options={workItems.map((w) => ({ id: w.id, code: w.externalKey, label: w.title }))}
+        checked={linkedWorkItems}
+        empty="Nenhum item externo aberto."
+        error={err.workItemIds}
+      />
 
       <Field label="Descrição" htmlFor="task-description" error={err.description}>
         <Textarea id="task-description" name="description" defaultValue={task?.description ?? ""} maxLength={5000} />
@@ -170,47 +182,5 @@ export function TaskForm({
         </Button>
       </div>
     </form>
-  );
-}
-
-function ContextChecklist({
-  legend,
-  name,
-  options,
-  checked,
-  empty,
-  error,
-}: {
-  legend: string;
-  name: string;
-  options: ContextRef[];
-  checked: Set<string>;
-  empty: string;
-  error?: string;
-}) {
-  return (
-    <fieldset className="flex min-w-0 flex-col gap-1.5">
-      <legend className="mb-1.5 text-xs font-medium">{legend}</legend>
-      {options.length === 0 ? (
-        <p className="text-xs text-muted-foreground">{empty}</p>
-      ) : (
-        <div className="flex max-h-40 flex-col gap-1 overflow-y-auto rounded-md border border-input bg-surface p-2">
-          {options.map((option) => (
-            <span key={option.id} className="flex items-center gap-2">
-              <Checkbox id={`${name}-${option.id}`} name={name} value={option.id} defaultChecked={checked.has(option.id)} />
-              <Label htmlFor={`${name}-${option.id}`} className="flex min-w-0 items-center gap-1.5 font-normal">
-                <span className="font-mono text-2xs text-muted-foreground">{option.code}</span>
-                <span className="truncate">{option.name}</span>
-              </Label>
-            </span>
-          ))}
-        </div>
-      )}
-      {error && (
-        <p className="text-xs text-danger-fg" role="alert">
-          {error}
-        </p>
-      )}
-    </fieldset>
   );
 }

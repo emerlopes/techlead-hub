@@ -1,10 +1,11 @@
+import { TRACKING_STALE_DAYS } from "@tlh/shared-contracts";
 import { History } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /** Sinaliza acompanhamento desatualizado (§5.4, §14.5). */
 export function StaleIndicator({
   lastCheckedDaysAgo,
-  thresholdDays = 3,
+  thresholdDays = TRACKING_STALE_DAYS,
   className,
 }: {
   lastCheckedDaysAgo: number | null;

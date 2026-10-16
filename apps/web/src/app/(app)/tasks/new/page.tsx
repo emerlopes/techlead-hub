@@ -7,6 +7,7 @@ import { ListSkeleton } from "@/components/app/page-skeletons";
 import { PageHeader } from "@/components/app/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { TaskForm } from "@/features/tasks/task-form";
+import { loadOpenWorkItems } from "@/lib/api/options";
 import { loadApi } from "@/lib/api/server";
 
 export const metadata: Metadata = { title: "Nova atividade · Tech Lead Hub" };
@@ -27,10 +28,17 @@ export default function NewTaskPage() {
 }
 
 async function NewTask() {
-  const [teams, projects] = await Promise.all([
+  const [teams, projects, workItems] = await Promise.all([
     loadApi("/teams?status=ACTIVE", z.array(teamSchema)),
     loadApi("/projects", z.array(projectSchema)),
+    loadOpenWorkItems(),
   ]);
-  if (!teams.ok || !projects.ok) return <ApiUnavailable />;
-  return <TaskForm teams={teams.data} projects={projects.data.filter((p) => p.status !== "ARCHIVED")} />;
+  if (!teams.ok || !projects.ok || !workItems.ok) return <ApiUnavailable />;
+  return (
+    <TaskForm
+      teams={teams.data}
+      projects={projects.data.filter((p) => p.status !== "ARCHIVED")}
+      workItems={workItems.data.items}
+    />
+  );
 }

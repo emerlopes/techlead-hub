@@ -6,6 +6,7 @@ import {
   optionalText,
   uuidListSchema,
   versionSchema,
+  workItemRefSchema,
 } from "./common";
 
 /* Tipos, situações e prioridades das atividades pessoais (§6.3–§6.5). */
@@ -52,6 +53,8 @@ export const taskSchema = z.object({
   /** Vínculos não duplicam a atividade (§6.8). */
   teams: z.array(contextRefSchema),
   projects: z.array(contextRefSchema),
+  /** Itens externos acompanhados (§6.8): concluir a atividade não resolve o item. */
+  workItems: z.array(workItemRefSchema),
   focus: taskFocusSchema.nullable(),
   /** Calculado no fuso do workspace; atividades encerradas nunca vencem (RN-001). */
   dueState: z.enum(taskDueStates).nullable(),
@@ -73,6 +76,7 @@ const taskFields = {
   actualHours: optionalHours,
   teamIds: uuidListSchema,
   projectIds: uuidListSchema,
+  workItemIds: uuidListSchema,
 };
 
 export const createTaskSchema = z
@@ -82,6 +86,7 @@ export const createTaskSchema = z
     priority: taskFields.priority.default("MEDIUM"),
     teamIds: taskFields.teamIds.default([]),
     projectIds: taskFields.projectIds.default([]),
+    workItemIds: taskFields.workItemIds.default([]),
   })
   .strict();
 export type CreateTaskInput = z.input<typeof createTaskSchema>;
@@ -96,6 +101,7 @@ export const updateTaskSchema = z
     status: z.enum(taskStatuses).optional(),
     teamIds: taskFields.teamIds.optional(),
     projectIds: taskFields.projectIds.optional(),
+    workItemIds: taskFields.workItemIds.optional(),
     version: versionSchema,
   })
   .strict();
@@ -140,35 +146,3 @@ export const updateFocusQueueSchema = z
     path: ["primaryTaskId"],
   });
 export type UpdateFocusQueueInput = z.infer<typeof updateFocusQueueSchema>;
-
-/* -------------------------------------------------------------------------- */
-/* Dashboard inicial (§5)                                                     */
-/* -------------------------------------------------------------------------- */
-
-export const dashboardQuerySchema = z.object({
-  teamId: z.uuid().optional(),
-  projectId: z.uuid().optional(),
-});
-export type DashboardQuery = z.infer<typeof dashboardQuerySchema>;
-
-export const dashboardSchema = z.object({
-  /** Data de referência no fuso do workspace. */
-  today: z.iso.date(),
-  context: z.object({ team: contextRefSchema.nullable(), project: contextRefSchema.nullable() }),
-  /** A fila de foco é pessoal: não muda com o contexto (§5.4). */
-  focus: focusQueueSchema,
-  personal: z.object({
-    openCount: z.number().int(),
-    inProgressCount: z.number().int(),
-    overdue: z.array(taskSchema),
-    dueToday: z.array(taskSchema),
-    upcoming: z.array(taskSchema),
-    blocked: z.array(taskSchema),
-  }),
-  organization: z.object({
-    activeTeams: z.number().int(),
-    activeProjects: z.number().int(),
-    activeDevelopers: z.number().int(),
-  }),
-});
-export type Dashboard = z.infer<typeof dashboardSchema>;

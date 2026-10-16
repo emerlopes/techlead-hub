@@ -1,4 +1,4 @@
-import type { Task } from "@tlh/shared-contracts";
+import type { HistoryEntry, Release, Sprint, Task, WorkItem } from "@tlh/shared-contracts";
 import type { Metadata } from "next";
 import {
   AlertOctagon,
@@ -28,7 +28,10 @@ import {
 } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Checkbox, Field, Input, Label, Select, Textarea } from "@/components/ui/input";
+import { CheckboxGroup } from "@/components/ui/checkbox-group";
 import { Avatar, Kbd, Separator, Skeleton } from "@/components/ui/misc";
+import { Pagination } from "@/components/ui/pagination";
+import { SegmentedNav } from "@/components/ui/segmented-nav";
 import { Progress } from "@/components/ui/progress";
 import {
   Table,
@@ -46,18 +49,26 @@ import { ConfidenceMeter } from "@/components/domain/confidence-meter";
 import { DateDelta } from "@/components/domain/date-delta";
 import { ContextChip, DomainTag } from "@/components/domain/domain-tag";
 import { FocusCard } from "@/components/domain/focus-card";
+import { HealthIndicator } from "@/components/domain/health-indicator";
+import { HistoryList } from "@/components/domain/history-list";
 import { JournalEntry } from "@/components/domain/journal-entry";
 import { Kpi } from "@/components/domain/kpi";
+import { LinkChips } from "@/components/domain/link-chips";
 import { RecommendationCard } from "@/components/domain/recommendation-card";
+import { ReleaseSummary } from "@/components/domain/release-summary";
+import { SprintSummary } from "@/components/domain/sprint-summary";
 import { StaleIndicator } from "@/components/domain/stale-indicator";
 import { StatusBadge } from "@/components/domain/status-badge";
 import { TaskItem } from "@/components/domain/task-item";
+import { WorkItemRow } from "@/components/domain/work-item-row";
 
 import { ApiUnavailable } from "@/components/app/api-unavailable";
 import { Brand } from "@/components/app/brand";
 import { FormError } from "@/components/app/form-error";
 import { PageHeader } from "@/components/app/page-header";
+import { SectionNav } from "@/components/app/section-nav";
 import { PasswordInput } from "@/features/identity/password-input";
+import { deliverySection } from "@/lib/navigation";
 
 import * as status from "@/lib/design-system/status";
 import type { StatusMeta } from "@/lib/design-system/status";
@@ -80,6 +91,7 @@ const sections = [
   { id: "status", label: "Status do domínio" },
   { id: "previsibilidade", label: "Previsibilidade" },
   { id: "padroes", label: "Padrões de domínio" },
+  { id: "entregas", label: "Entregas" },
   { id: "shell", label: "Shell da aplicação" },
   { id: "composicao", label: "Composição" },
 ];
@@ -149,6 +161,7 @@ export default function DesignSystemPage() {
           <DomainStatus />
           <Predictability />
           <DomainPatterns />
+          <Deliveries />
           <AppShell />
           <Composition />
         </main>
@@ -729,6 +742,17 @@ function DomainStatus() {
         <StatusGroup title="Impacto" spec="§28.7" map={status.impact} />
         <StatusGroup title="Jobs" spec="§41.4" map={status.jobStatus} />
         <StatusGroup title="Escopo da sprint" spec="§11.5" map={status.scopeType} />
+        <StatusGroup title="Saída da sprint" spec="§11.5 · RN-010" map={status.sprintExitReason} />
+        <StatusGroup title="Execução do item" spec="§13.4" map={status.executionStatus} />
+        <StatusGroup title="Tipo de item" spec="§13.5" map={status.workItemType} />
+        <StatusGroup title="Origem da informação" spec="§14.3" map={status.statusSource} />
+        <StatusGroup title="Release" spec="§12" map={status.releaseStatus} />
+        <StatusGroup title="Item da release" spec="§12.2" map={status.releaseRequirement} />
+        <StatusGroup title="Risco · tipo" spec="§16" map={status.riskType} />
+        <StatusGroup title="Risco · situação" spec="§16 · RN-008" map={status.riskStatus} />
+        <StatusGroup title="Gravidade" spec="§16.2" map={status.riskSeverity} />
+        <StatusGroup title="Probabilidade" spec="§16.2" map={status.riskProbability} />
+        <StatusGroup title="Bloqueio" spec="§16.4" map={status.blockingLevel} />
       </div>
       <Specimen title="Variantes de badge" note="subtle (padrão) · outline · solid · dot">
         <StatusBadge meta={status.healthStatus.AT_RISK} />
@@ -807,6 +831,7 @@ const sampleTask = {
   cancelledAt: null,
   teams: [{ id: "00000000-0000-4000-8000-000000000002", code: "PAY", name: "Pagamentos" }],
   projects: [{ id: "00000000-0000-4000-8000-000000000003", code: "CHK", name: "Checkout" }],
+  workItems: [],
   focus: { position: 1, isPrimary: false },
   dueState: "OVERDUE",
   createdAt: "2026-10-01T12:00:00.000Z",
@@ -873,6 +898,163 @@ function DomainPatterns() {
           positives={["Release 2.4 volta a ficar no prazo"]}
           negatives={["Cupom no carrinho fica para a release 2.5", "Afeta compromisso com o time de Marketing"]}
         />
+      </div>
+    </Section>
+  );
+}
+
+const ref = (n: number) => `00000000-0000-4000-8000-0000000001${String(n).padStart(2, "0")}`;
+const pay = { id: ref(1), code: "PAY", name: "Pagamentos" };
+const chk = { id: ref(2), code: "CHK", name: "Checkout" };
+
+const sampleWorkItem = {
+  id: ref(3),
+  source: { id: ref(4), name: "Jira" },
+  externalKey: "PAY-142",
+  title: "Pagamento com Pix no checkout",
+  externalUrl: "https://jira.example.com/browse/PAY-142",
+  itemType: "STORY",
+  project: chk,
+  executionStatus: "IN_PROGRESS",
+  refinementStatus: "READY",
+  notes: null,
+  completedAt: null,
+  tracking: {
+    executingTeam: pay,
+    developer: { id: ref(5), name: "Bruno Lima" },
+    committedDate: "2026-10-22",
+    manualForecastDate: "2026-10-27",
+    manualHealth: "AT_RISK",
+    calculatedHealth: "BLOCKED",
+    health: "AT_RISK",
+    remainingEffortHours: 16,
+    // Nunca verificado: o exemplo não depende da data atual (página estática).
+    lastCheckedAt: null,
+    stale: true,
+    statusSource: "DEVELOPER",
+    statusNote: null,
+    updatedAt: "2026-10-10T12:00:00.000Z",
+  },
+  currentSprint: { id: ref(6), name: "Sprint 42", status: "ACTIVE", startDate: "2026-10-11", scopeType: "ORIGINAL" },
+  releases: [],
+  openRisks: [],
+  createdAt: "2026-10-01T12:00:00.000Z",
+  updatedAt: "2026-10-10T12:00:00.000Z",
+  version: 3,
+} satisfies WorkItem;
+
+const sampleSprint = {
+  id: ref(6),
+  team: pay,
+  name: "Sprint 42",
+  goal: null,
+  startDate: "2026-10-11",
+  endDate: "2026-10-25",
+  status: "ACTIVE",
+  closedAt: null,
+  counts: { total: 8, done: 3, blocked: 1, openRisks: 2 },
+  createdAt: "2026-10-01T12:00:00.000Z",
+  updatedAt: "2026-10-01T12:00:00.000Z",
+  version: 2,
+} satisfies Sprint;
+
+const sampleRelease = {
+  id: ref(7),
+  project: chk,
+  name: "Checkout 3.0",
+  description: null,
+  committedDate: "2026-11-05",
+  forecastDate: "2026-11-03",
+  status: "IN_PROGRESS",
+  closedAt: null,
+  health: "ON_TRACK",
+  progress: { required: 5, requiredDone: 2, optional: 2, optionalDone: 0 },
+  teams: [{ id: ref(8), code: "CORE", name: "Plataforma" }, pay],
+  openRiskCount: 1,
+  createdAt: "2026-10-01T12:00:00.000Z",
+  updatedAt: "2026-10-01T12:00:00.000Z",
+  version: 4,
+} satisfies Release;
+
+const sampleHistory: HistoryEntry[] = [
+  { id: ref(9), action: "sprint.closed", occurredAt: "2026-10-15T18:00:00.000Z", fields: [], fromStatus: "ACTIVE", toStatus: "CLOSED" },
+  { id: ref(10), action: "sprint.updated", occurredAt: "2026-10-11T12:00:00.000Z", fields: ["goal", "endDate"], fromStatus: null, toStatus: null },
+];
+
+function Deliveries() {
+  return (
+    <Section
+      id="entregas"
+      title="Entregas"
+      description="Acompanhamento operacional dos times (Etapa 3): itens externos, sprints, releases, riscos e histórico."
+    >
+      <Specimen title="SectionNav" note="sub-navegação das áreas Entregas e Organização" className="flex-col items-stretch">
+        <SectionNav section={deliverySection} />
+      </Specimen>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Specimen title="HealthIndicator" note="manual prevalece; a calculada aparece quando diverge (§14.4)" className="flex-col items-start">
+          <HealthIndicator tracking={{ health: "ON_TRACK", manualHealth: null, calculatedHealth: "ON_TRACK" }} />
+          <HealthIndicator tracking={{ health: "AT_RISK", manualHealth: "AT_RISK", calculatedHealth: "BLOCKED" }} />
+          <HealthIndicator tracking={{ health: "UNKNOWN", manualHealth: null, calculatedHealth: "UNKNOWN" }} />
+        </Specimen>
+        <Specimen title="LinkChips" note="contextos de risco ou acontecimento, cada um com link">
+          <LinkChips
+            links={{
+              teams: [pay],
+              projects: [chk],
+              workItems: [{ id: ref(3), externalKey: "PAY-142", title: "Pagamento com Pix" }],
+              sprints: [{ id: ref(6), name: "Sprint 42" }],
+            }}
+          />
+        </Specimen>
+      </div>
+      <Card className="p-4">
+        <WorkItemRow item={sampleWorkItem} />
+      </Card>
+      <p className="text-xs text-muted-foreground">
+        WorkItemRow: chave externa em mono, link para a ferramenta, saúde, execução, contexto, responsável, compromisso,
+        sprint e verificação desatualizada (§14.5).
+      </p>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card className="p-4">
+          <SprintSummary sprint={sampleSprint} />
+        </Card>
+        <Card className="p-4">
+          <ReleaseSummary release={sampleRelease} />
+        </Card>
+      </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Specimen title="HistoryList" note="auditoria como histórico, sem valores pessoais" className="flex-col items-stretch">
+          <HistoryList entries={sampleHistory} timeZone="America/Sao_Paulo" statusMap={status.sprintStatus} />
+        </Specimen>
+        <Specimen title="CheckboxGroup" note="vínculos múltiplos; idPrefix quando repetido" className="flex-col items-stretch">
+          <CheckboxGroup
+            legend="Times"
+            name="ds-teams"
+            options={[
+              { id: ref(1), code: "PAY", label: "Pagamentos" },
+              { id: ref(8), code: "CORE", label: "Plataforma" },
+            ]}
+            checked={new Set([ref(1)])}
+            empty="Nenhum time."
+          />
+        </Specimen>
+      </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Specimen title="SegmentedNav" note="filtro por links (estado na URL)">
+          <SegmentedNav
+            label="Situação"
+            current="open"
+            items={[
+              { value: "open", label: "Abertas", href: "#entregas" },
+              { value: "closed", label: "Encerradas", href: "#entregas" },
+              { value: "all", label: "Todas", href: "#entregas" },
+            ]}
+          />
+        </Specimen>
+        <Specimen title="Pagination" note="RNF-009" className="flex-col items-stretch">
+          <Pagination page={2} pageSize={50} total={120} hrefFor={() => "#entregas"} />
+        </Specimen>
       </div>
     </Section>
   );

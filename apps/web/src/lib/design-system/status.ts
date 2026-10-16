@@ -1,6 +1,8 @@
 import {
   Archive,
   Ban,
+  BookOpen,
+  Bug,
   CalendarClock,
   CalendarDays,
   CalendarRange,
@@ -17,9 +19,11 @@ import {
   Clock,
   ClockAlert,
   Equal,
+  ExternalLink,
   Eye,
   FileSearch,
   Flame,
+  FlaskConical,
   Gavel,
   GitBranch,
   History,
@@ -35,14 +39,18 @@ import {
   Pause,
   Play,
   RefreshCw,
+  Rocket,
   RotateCcw,
   Search,
   ShieldAlert,
   Shapes,
   Sparkles,
+  TrendingUp,
   Trophy,
   TriangleAlert,
+  Undo2,
   UserCheck,
+  UserRound,
   Users,
   UserX,
   Wrench,
@@ -201,6 +209,40 @@ export const sprintStatus = {
 } satisfies StatusMap<string>;
 export type SprintStatus = keyof typeof sprintStatus;
 
+/* -------------------------------------------------------------------------- */
+/* Itens externos e acompanhamento (§13, §14)                                 */
+/* -------------------------------------------------------------------------- */
+
+/* Execução do item (§13.4) — independente do refinamento (RN-007) */
+export const executionStatus = {
+  NOT_STARTED: { label: "Não iniciada", tone: "neutral", icon: Circle },
+  IN_PROGRESS: { label: "Em andamento", tone: "info", icon: CircleDot },
+  IN_REVIEW: { label: "Em revisão", tone: "info", icon: FileSearch },
+  DONE: { label: "Concluída", tone: "success", icon: CircleCheck },
+  CANCELLED: { label: "Cancelada", tone: "neutral", icon: CircleSlash },
+} satisfies StatusMap<string>;
+export type ExecutionStatus = keyof typeof executionStatus;
+
+/* Tipos de item externo (§13.5) */
+export const workItemType = {
+  STORY: { label: "História", tone: "delivery", icon: BookOpen },
+  BUG: { label: "Bug", tone: "delivery", icon: Bug },
+  TECHNICAL_TASK: { label: "Tarefa técnica", tone: "delivery", icon: Wrench },
+  SPIKE: { label: "Spike", tone: "delivery", icon: FlaskConical },
+  IMPROVEMENT: { label: "Melhoria", tone: "delivery", icon: TrendingUp },
+  OTHER: { label: "Outro", tone: "neutral", icon: Shapes },
+} satisfies StatusMap<string>;
+export type WorkItemType = keyof typeof workItemType;
+
+/* Origem da informação de situação (§14.3 status_source) */
+export const statusSource = {
+  TECH_LEAD: { label: "Tech Lead", tone: "neutral", icon: UserCheck },
+  DEVELOPER: { label: "Desenvolvedor", tone: "neutral", icon: UserRound },
+  EXTERNAL_TOOL: { label: "Ferramenta externa", tone: "neutral", icon: ExternalLink },
+  MEETING: { label: "Reunião", tone: "neutral", icon: Users },
+} satisfies StatusMap<string>;
+export type StatusSource = keyof typeof statusSource;
+
 /* Refinamento (§15.3) — independente da execução (RN-007) */
 export const refinementStatus = {
   NEEDS_REFINEMENT: { label: "Aguardando refinamento", tone: "neutral", icon: CircleDashed },
@@ -210,6 +252,71 @@ export const refinementStatus = {
   CANCELLED: { label: "Cancelada", tone: "neutral", icon: CircleSlash },
 } satisfies StatusMap<string>;
 export type RefinementStatus = keyof typeof refinementStatus;
+
+/* Saída de uma sprint (§11.5) — a participação continua no histórico (RN-010) */
+export const sprintExitReason = {
+  COMPLETED: { label: "Concluído na sprint", tone: "success", icon: CircleCheck },
+  NOT_COMPLETED: { label: "Não concluído", tone: "attention", icon: Hourglass },
+  MOVED: { label: "Remanejado", tone: "info", icon: GitBranch },
+  REMOVED: { label: "Removido", tone: "neutral", icon: Undo2 },
+} satisfies StatusMap<string>;
+export type SprintExitReason = keyof typeof sprintExitReason;
+
+/* Releases (§12) */
+export const releaseStatus = {
+  PLANNED: { label: "Planejada", tone: "neutral", icon: CalendarClock },
+  IN_PROGRESS: { label: "Em andamento", tone: "info", icon: Play },
+  RELEASED: { label: "Entregue", tone: "success", icon: Rocket },
+  CANCELLED: { label: "Cancelada", tone: "neutral", icon: CircleSlash },
+} satisfies StatusMap<string>;
+export type ReleaseStatus = keyof typeof releaseStatus;
+
+/* Item obrigatório × opcional da release (§12.2) */
+export const releaseRequirement = {
+  REQUIRED: { label: "Obrigatório", tone: "delivery", icon: Lock },
+  OPTIONAL: { label: "Opcional", tone: "neutral", icon: CircleDashed },
+} satisfies StatusMap<string>;
+export type ReleaseRequirement = keyof typeof releaseRequirement;
+
+/* -------------------------------------------------------------------------- */
+/* Riscos e impedimentos (§16)                                                */
+/* -------------------------------------------------------------------------- */
+export const riskType = {
+  RISK: { label: "Risco", tone: "warning", icon: ShieldAlert },
+  IMPEDIMENT: { label: "Impedimento", tone: "blocked", icon: OctagonX },
+} satisfies StatusMap<string>;
+export type RiskType = keyof typeof riskType;
+
+export const riskSeverity = {
+  CRITICAL: { label: "Gravidade crítica", tone: "danger", icon: ChevronsUp },
+  HIGH: { label: "Gravidade alta", tone: "warning", icon: ChevronUp },
+  MEDIUM: { label: "Gravidade média", tone: "attention", icon: Equal },
+  LOW: { label: "Gravidade baixa", tone: "neutral", icon: ChevronDown },
+} satisfies StatusMap<string>;
+export type RiskSeverity = keyof typeof riskSeverity;
+
+export const riskProbability = {
+  HIGH: { label: "Probabilidade alta", tone: "warning", icon: ChevronUp },
+  MEDIUM: { label: "Probabilidade média", tone: "attention", icon: Equal },
+  LOW: { label: "Probabilidade baixa", tone: "neutral", icon: ChevronDown },
+} satisfies StatusMap<string>;
+export type RiskProbability = keyof typeof riskProbability;
+
+/* Resolvido continua consultável (RN-008) */
+export const riskStatus = {
+  OPEN: { label: "Aberto", tone: "warning", icon: CircleDot },
+  MONITORING: { label: "Em monitoramento", tone: "attention", icon: Eye },
+  RESOLVED: { label: "Resolvido", tone: "success", icon: CircleCheck },
+  CANCELLED: { label: "Cancelado", tone: "neutral", icon: CircleSlash },
+} satisfies StatusMap<string>;
+export type RiskStatus = keyof typeof riskStatus;
+
+/* Impedimento bloqueia total ou parcialmente (§16.4) */
+export const blockingLevel = {
+  FULL: { label: "Bloqueio total", tone: "blocked", icon: OctagonX },
+  PARTIAL: { label: "Bloqueio parcial", tone: "warning", icon: TriangleAlert },
+} satisfies StatusMap<string>;
+export type BlockingLevel = keyof typeof blockingLevel;
 
 /* -------------------------------------------------------------------------- */
 /* Previsibilidade                                                            */

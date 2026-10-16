@@ -6,11 +6,11 @@ import {
   isOpenTask,
   type Task,
   type taskListQuerySchema,
-  todayIn,
   type updateTaskSchema,
 } from "@tlh/shared-contracts";
 import type { z } from "zod";
 import type { Prisma, TaskStatus } from "../../generated/prisma/client";
+import { assertProjectsOpen, assertTeamsActive, workspaceToday } from "../../common/context-rules";
 import { changedFields, fromIsoDate, notFound, ruleViolation, versionConflict } from "../../common/persistence";
 import { PrismaService } from "../../infrastructure/prisma/prisma.service";
 import { type AuditAction, AuditService } from "../audit/audit.service";
@@ -32,12 +32,8 @@ export class TasksService {
   ) {}
 
   /** Hoje no fuso do workspace (§35.3). */
-  async today(auth: AuthContext): Promise<string> {
-    const workspace = await this.prisma.workspace.findUniqueOrThrow({
-      where: { id: auth.workspaceId },
-      select: { timezone: true },
-    });
-    return todayIn(workspace.timezone);
+  today(auth: AuthContext): Promise<string> {
+    return workspaceToday(this.prisma, auth.workspaceId);
   }
 
   /** Filtro de contexto (§5.3): a atividade aparece uma única vez, mesmo com vários vínculos (§6.8). */
@@ -75,8 +71,8 @@ export class TasksService {
   }
 
   async create(auth: AuthContext, input: z.output<typeof createTaskSchema>): Promise<Task> {
-    const { teamIds, projectIds, dueDate, ...fields } = input;
-    await this.assertLinkable(auth, teamIds, projectIds);
+    const { teamIds, projectIds, workItemIds, dueDate, ...fields } = input;
+    await this.assertLinkable(auth, teamIds, projectIds, workItemIds);
     const id = await this.prisma.$transaction(async (tx) => {
       const task = await tx.task.create({
         data: {
@@ -85,6 +81,7 @@ export class TasksService {
           workspaceId: auth.workspaceId,
           teams: { createMany: { data: teamIds.map((teamId) => ({ teamId })) } },
           projects: { createMany: { data: projectIds.map((projectId) => ({ projectId })) } },
+          workItems: { createMany: { data: workItemIds.map((workItemId) => ({ workItemId })) } },
         },
       });
       await this.audit.record(
@@ -94,7 +91,7 @@ export class TasksService {
           entityId: task.id,
           workspaceId: auth.workspaceId,
           actorUserId: auth.userId,
-          metadata: { teamIds, projectIds },
+          metadata: { teamIds, projectIds, workItemIds },
         },
         tx,
       );
@@ -113,10 +110,14 @@ export class TasksService {
   }
 
   private async applyUpdate(auth: AuthContext, id: string, input: UpdateInput, action: AuditAction): Promise<Task> {
-    const { version, teamIds, projectIds, dueDate, status, ...fields } = input;
+    const { version, teamIds, projectIds, workItemIds, dueDate, status, ...fields } = input;
     const current = await this.prisma.task.findFirst({
       where: { id, workspaceId: auth.workspaceId },
-      include: { teams: { select: { teamId: true } }, projects: { select: { projectId: true } } },
+      include: {
+        teams: { select: { teamId: true } },
+        projects: { select: { projectId: true } },
+        workItems: { select: { workItemId: true } },
+      },
     });
     if (!current) throw notFound(ENTITY);
 
@@ -125,6 +126,7 @@ export class TasksService {
       auth,
       (teamIds ?? []).filter((teamId) => !current.teams.some((link) => link.teamId === teamId)),
       (projectIds ?? []).filter((projectId) => !current.projects.some((link) => link.projectId === projectId)),
+      (workItemIds ?? []).filter((workItemId) => !current.workItems.some((link) => link.workItemId === workItemId)),
     );
 
     const data: Prisma.TaskUpdateManyMutationInput = {
@@ -143,7 +145,7 @@ export class TasksService {
     await this.prisma.$transaction(async (tx) => {
       const result = await tx.task.updateMany({ where: { id, workspaceId: auth.workspaceId, version }, data });
       if (result.count === 0) throw versionConflict(ENTITY);
-      await this.replaceLinks(tx, id, teamIds, projectIds);
+      await this.replaceLinks(tx, id, teamIds, projectIds, workItemIds);
       // Atividade concluída ou cancelada sai da fila de foco (§6.6).
       if (status && !isOpenTask(status)) await tx.focusQueueItem.deleteMany({ where: { taskId: id } });
       await this.audit.record(
@@ -165,7 +167,13 @@ export class TasksService {
     return this.get(auth, id);
   }
 
-  private async replaceLinks(tx: Tx, taskId: string, teamIds?: string[], projectIds?: string[]): Promise<void> {
+  private async replaceLinks(
+    tx: Tx,
+    taskId: string,
+    teamIds?: string[],
+    projectIds?: string[],
+    workItemIds?: string[],
+  ): Promise<void> {
     if (teamIds) {
       await tx.taskTeam.deleteMany({ where: { taskId, teamId: { notIn: teamIds } } });
       await tx.taskTeam.createMany({ data: teamIds.map((teamId) => ({ taskId, teamId })), skipDuplicates: true });
@@ -177,23 +185,27 @@ export class TasksService {
         skipDuplicates: true,
       });
     }
+    if (workItemIds) {
+      await tx.taskWorkItem.deleteMany({ where: { taskId, workItemId: { notIn: workItemIds } } });
+      await tx.taskWorkItem.createMany({
+        data: workItemIds.map((workItemId) => ({ taskId, workItemId })),
+        skipDuplicates: true,
+      });
+    }
   }
 
   /** Atividades podem existir sem contexto (RN-023); novos vínculos exigem contexto ativo. */
-  private async assertLinkable(auth: AuthContext, teamIds: string[], projectIds: string[]): Promise<void> {
-    const [teams, projects] = await Promise.all([
-      teamIds.length
-        ? this.prisma.team.findMany({ where: { id: { in: teamIds }, workspaceId: auth.workspaceId } })
-        : [],
-      projectIds.length
-        ? this.prisma.project.findMany({ where: { id: { in: projectIds }, workspaceId: auth.workspaceId } })
-        : [],
-    ]);
-    if (teams.length !== teamIds.length) throw ruleViolation("Time não encontrado.", "teamIds");
-    if (projects.length !== projectIds.length) throw ruleViolation("Projeto não encontrado.", "projectIds");
-    const inactive = teams.find((team) => team.status !== "ACTIVE");
-    if (inactive) throw ruleViolation(`O time ${inactive.code} está inativo (§7.4).`, "teamIds");
-    const archived = projects.find((project) => project.status === "ARCHIVED");
-    if (archived) throw ruleViolation(`O projeto ${archived.code} está arquivado (§8.5).`, "projectIds");
+  private async assertLinkable(
+    auth: AuthContext,
+    teamIds: string[],
+    projectIds: string[],
+    workItemIds: string[],
+  ): Promise<void> {
+    await assertTeamsActive(this.prisma, auth.workspaceId, teamIds, "teamIds");
+    await assertProjectsOpen(this.prisma, auth.workspaceId, projectIds, "projectIds");
+    if (workItemIds.length) {
+      const count = await this.prisma.externalWorkItem.count({ where: { id: { in: workItemIds }, workspaceId: auth.workspaceId } });
+      if (count !== workItemIds.length) throw ruleViolation("Item externo não encontrado.", "workItemIds");
+    }
   }
 }

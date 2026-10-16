@@ -1,11 +1,14 @@
+import { externalSourceSchema } from "@tlh/shared-contracts";
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { z } from "zod";
 import { ApiUnavailable } from "@/components/app/api-unavailable";
 import { PageHeader } from "@/components/app/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/misc";
+import { SourceManager } from "@/features/work-items/source-manager";
 import { WorkspaceForm } from "@/features/workspace/workspace-form";
-import { requireMe } from "@/lib/api/server";
+import { loadApi, requireMe } from "@/lib/api/server";
 import { listTimeZones } from "@/lib/time-zones";
 
 export const metadata: Metadata = { title: "Configurações · Tech Lead Hub" };
@@ -27,8 +30,28 @@ export default function SettingsPage() {
           </Suspense>
         </CardContent>
       </Card>
+      <Card id="sources" className="max-w-2xl scroll-mt-20">
+        <CardHeader>
+          <CardTitle>Origens de itens externos</CardTitle>
+          <CardDescription>
+            Ferramentas de onde vêm histórias e bugs (Jira, Azure DevOps…). O identificador do item é único por origem
+            (RN-005); a URL é só referência (§13.6).
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Suspense fallback={<FormSkeleton />}>
+            <Sources />
+          </Suspense>
+        </CardContent>
+      </Card>
     </>
   );
+}
+
+async function Sources() {
+  const result = await loadApi("/external-sources", z.array(externalSourceSchema));
+  if (!result.ok) return <ApiUnavailable />;
+  return <SourceManager sources={result.data} />;
 }
 
 async function Settings() {

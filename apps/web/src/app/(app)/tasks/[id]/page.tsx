@@ -15,6 +15,7 @@ import { FocusButtons } from "@/features/tasks/focus-buttons";
 import { toQueueState } from "@/features/tasks/focus-queue-ops";
 import { TaskForm } from "@/features/tasks/task-form";
 import { TaskStatusActions } from "@/features/tasks/task-status-actions";
+import { loadOpenWorkItems } from "@/lib/api/options";
 import { loadApi, requireMe } from "@/lib/api/server";
 import { formatBusinessDate, formatDateTime, formatHours } from "@/lib/format";
 import { priority, taskDueState, taskStatus, taskType } from "@/lib/design-system/status";
@@ -31,15 +32,16 @@ export default function TaskPage({ params }: PageProps<"/tasks/[id]">) {
 
 async function TaskView({ params }: Pick<PageProps<"/tasks/[id]">, "params">) {
   const { id } = await params;
-  const [task, me, queue, teams, projects] = await Promise.all([
+  const [task, me, queue, teams, projects, workItems] = await Promise.all([
     loadApi(`/tasks/${id}`, taskSchema),
     requireMe(),
     loadApi("/focus-queue", focusQueueSchema),
     loadApi("/teams", z.array(teamSchema)),
     loadApi("/projects", z.array(projectSchema)),
+    loadOpenWorkItems(),
   ]);
   if (!task.ok && task.reason === "not_found") notFound();
-  if (!task.ok || !me.ok || !queue.ok || !teams.ok || !projects.ok) return <ApiUnavailable />;
+  if (!task.ok || !me.ok || !queue.ok || !teams.ok || !projects.ok || !workItems.ok) return <ApiUnavailable />;
   const t = task.data;
   const timeZone = me.data.workspace.timezone;
   const linked = new Set([...t.teams, ...t.projects].map((c) => c.id));
@@ -81,6 +83,10 @@ async function TaskView({ params }: Pick<PageProps<"/tasks/[id]">, "params">) {
               // Contextos ativos + os já vinculados, para não perder vínculos antigos ao salvar.
               teams={teams.data.filter((team) => team.status === "ACTIVE" || linked.has(team.id))}
               projects={projects.data.filter((p) => p.status !== "ARCHIVED" || linked.has(p.id))}
+              workItems={[
+                ...t.workItems.filter((w) => !workItems.data.items.some((open) => open.id === w.id)),
+                ...workItems.data.items,
+              ]}
             />
           </CardContent>
         </Card>

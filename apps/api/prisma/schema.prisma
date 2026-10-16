@@ -30,6 +30,13 @@ model Workspace {
   tasks       Task[]
   focusQueue  FocusQueueItem[]
 
+  externalSources ExternalSource[]
+  workItems       ExternalWorkItem[]
+  sprints         Sprint[]
+  releases        Release[]
+  risks           Risk[]
+  journalEntries  JournalEntry[]
+
   @@map("workspaces")
 }
 
@@ -154,6 +161,11 @@ model Team {
   developers TeamDeveloper[]
   tasks      TaskTeam[]
 
+  sprints      Sprint[]
+  trackings    DeliveryTracking[]
+  riskLinks    RiskLink[]
+  journalLinks JournalLink[]
+
   @@unique([workspaceId, code])
   @@map("teams")
 }
@@ -173,6 +185,11 @@ model Project {
   workspace Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
   teams     TeamProject[]
   tasks     TaskProject[]
+
+  workItems    ExternalWorkItem[]
+  releases     Release[]
+  riskLinks    RiskLink[]
+  journalLinks JournalLink[]
 
   @@unique([workspaceId, code])
   @@map("projects")
@@ -207,8 +224,9 @@ model Developer {
   updatedAt       DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
   version         Int             @default(1)
 
-  workspace Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  workspace Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
   teams     TeamDeveloper[]
+  trackings DeliveryTracking[]
 
   @@index([workspaceId, status])
   @@map("developers")
@@ -255,6 +273,8 @@ model Task {
   teams     TaskTeam[]
   projects  TaskProject[]
   focus     FocusQueueItem?
+  workItems TaskWorkItem[]
+  riskLinks RiskLink[]
 
   @@index([workspaceId, status, dueDate])
   @@map("tasks")
@@ -298,4 +318,517 @@ model FocusQueueItem {
 
   @@unique([workspaceId, position])
   @@map("focus_queue_items")
+}
+
+// ---------------------------------------------------------------------------
+// Acompanhamento de entregas (Etapa 3, §54): itens externos (§13), acompanhamento
+// (§14), sprints (§11), releases (§12), refinamentos (§15), riscos e impedimentos
+// (§16) e diário de bordo (§17). O item externo é a raiz do agregado: acompanhamento
+// e refinamento compartilham a `version` dele.
+// ---------------------------------------------------------------------------
+
+enum WorkItemType {
+  STORY
+  BUG
+  TECHNICAL_TASK
+  SPIKE
+  IMPROVEMENT
+  OTHER
+}
+
+/// Execução do item (§13.4). Independente do refinamento (RN-007).
+enum ExecutionStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  IN_REVIEW
+  DONE
+  CANCELLED
+}
+
+/// §15.3.
+enum RefinementStatus {
+  NEEDS_REFINEMENT
+  ANALYZING
+  WAITING_INFORMATION
+  READY
+  CANCELLED
+}
+
+/// Avaliação manual de saúde (§14.4). A saúde calculada não é persistida: é derivada na leitura.
+enum HealthStatus {
+  ON_TRACK
+  AT_RISK
+  DELAYED
+  BLOCKED
+  UNKNOWN
+}
+
+/// De onde veio a informação de situação (§14.3 `status_source`).
+enum StatusSource {
+  TECH_LEAD
+  DEVELOPER
+  EXTERNAL_TOOL
+  MEETING
+}
+
+enum SprintStatus {
+  PLANNED
+  ACTIVE
+  CLOSED
+  CANCELLED
+}
+
+/// §11.5: original, adicionado, remanejado.
+enum SprintScopeType {
+  ORIGINAL
+  ADDED
+  MOVED
+}
+
+enum SprintExitReason {
+  COMPLETED
+  NOT_COMPLETED
+  MOVED
+  REMOVED
+}
+
+enum ReleaseStatus {
+  PLANNED
+  IN_PROGRESS
+  RELEASED
+  CANCELLED
+}
+
+enum RiskType {
+  RISK
+  IMPEDIMENT
+}
+
+enum RiskSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum RiskProbability {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum RiskStatus {
+  OPEN
+  MONITORING
+  RESOLVED
+  CANCELLED
+}
+
+/// Impedimento bloqueia total ou parcialmente uma entrega (§16.4).
+enum BlockingLevel {
+  FULL
+  PARTIAL
+}
+
+/// §17.2.
+enum JournalCategory {
+  TECH_DECISION
+  INCIDENT
+  BLOCK
+  UNBLOCK
+  LEARNING
+  SCOPE_CHANGE
+  ACHIEVEMENT
+  RISK
+  GENERAL
+}
+
+/// Ferramenta externa de origem dos itens (Jira, Azure DevOps…). Referência, não integração (§13.6).
+model ExternalSource {
+  id          String   @id @default(uuid()) @db.Uuid
+  workspaceId String   @map("workspace_id") @db.Uuid
+  name        String   @db.VarChar(60)
+  baseUrl     String?  @map("base_url") @db.VarChar(500)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  version     Int      @default(1)
+
+  workspace Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  workItems ExternalWorkItem[]
+
+  @@unique([workspaceId, name])
+  @@map("external_sources")
+}
+
+/// História, bug ou tarefa de uma ferramenta externa (§13). A ferramenta continua sendo a fonte (§13.2).
+model ExternalWorkItem {
+  id               String           @id @default(uuid()) @db.Uuid
+  workspaceId      String           @map("workspace_id") @db.Uuid
+  sourceId         String           @map("source_id") @db.Uuid
+  /// Único por origem (RN-005).
+  externalKey      String           @map("external_key") @db.VarChar(60)
+  title            String           @db.VarChar(300)
+  externalUrl      String?          @map("external_url") @db.VarChar(2000)
+  itemType         WorkItemType     @default(STORY) @map("item_type")
+  /// Projeto de referência (RN-018).
+  projectId        String           @map("project_id") @db.Uuid
+  executionStatus  ExecutionStatus  @default(NOT_STARTED) @map("execution_status")
+  refinementStatus RefinementStatus @default(NEEDS_REFINEMENT) @map("refinement_status")
+  notes            String?          @db.VarChar(5000)
+  completedAt      DateTime?        @map("completed_at") @db.Timestamptz(3)
+  createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+  version          Int              @default(1)
+
+  workspace          Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  source             ExternalSource      @relation(fields: [sourceId], references: [id], onDelete: Restrict)
+  project            Project             @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  tracking           DeliveryTracking?
+  refinement         Refinement?
+  sprintMemberships  SprintMembership[]
+  releaseMemberships ReleaseMembership[]
+  tasks              TaskWorkItem[]
+  riskLinks          RiskLink[]
+  journalLinks       JournalLink[]
+
+  @@unique([sourceId, externalKey])
+  @@index([workspaceId, projectId])
+  @@index([workspaceId, executionStatus])
+  @@map("external_work_items")
+}
+
+/// Acompanhamento corrente do item (§14.3); um por item na versão inicial (§14.5).
+model DeliveryTracking {
+  id                   String        @id @default(uuid()) @db.Uuid
+  workItemId           String        @unique @map("work_item_id") @db.Uuid
+  executingTeamId      String?       @map("executing_team_id") @db.Uuid
+  developerId          String?       @map("developer_id") @db.Uuid
+  /// Datas de negócio (§35.3). Compromisso e previsão separados (§12.5).
+  committedDate        DateTime?     @map("committed_date") @db.Date
+  manualForecastDate   DateTime?     @map("manual_forecast_date") @db.Date
+  /// Avaliação manual; a calculada fica separada para não perder informação (§14.4).
+  healthStatus         HealthStatus? @map("health_status")
+  remainingEffortHours Decimal?      @map("remaining_effort_hours") @db.Decimal(7, 2)
+  lastCheckedAt        DateTime?     @map("last_checked_at") @db.Timestamptz(3)
+  statusSource         StatusSource? @map("status_source")
+  statusNote           String?       @map("status_note") @db.VarChar(1000)
+  updatedAt            DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  workItem      ExternalWorkItem          @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  executingTeam Team?                     @relation(fields: [executingTeamId], references: [id], onDelete: Restrict)
+  developer     Developer?                @relation(fields: [developerId], references: [id], onDelete: Restrict)
+  history       DeliveryTrackingHistory[]
+
+  @@index([executingTeamId])
+  @@index([developerId])
+  @@map("delivery_trackings")
+}
+
+/// Fotografia do acompanhamento após cada mudança relevante (RN-006, CA-006). Somente inserção.
+model DeliveryTrackingHistory {
+  id                   String           @id @default(uuid()) @db.Uuid
+  deliveryTrackingId   String           @map("delivery_tracking_id") @db.Uuid
+  changedAt            DateTime         @default(now()) @map("changed_at") @db.Timestamptz(3)
+  actorUserId          String?          @map("actor_user_id") @db.Uuid
+  changedFields        String[]         @map("changed_fields")
+  executionStatus      ExecutionStatus  @map("execution_status")
+  refinementStatus     RefinementStatus @map("refinement_status")
+  executingTeamId      String?          @map("executing_team_id") @db.Uuid
+  developerId          String?          @map("developer_id") @db.Uuid
+  committedDate        DateTime?        @map("committed_date") @db.Date
+  manualForecastDate   DateTime?        @map("manual_forecast_date") @db.Date
+  healthStatus         HealthStatus?    @map("health_status")
+  remainingEffortHours Decimal?         @map("remaining_effort_hours") @db.Decimal(7, 2)
+  statusNote           String?          @map("status_note") @db.VarChar(1000)
+
+  tracking DeliveryTracking @relation(fields: [deliveryTrackingId], references: [id], onDelete: Cascade)
+
+  @@index([deliveryTrackingId, changedAt])
+  @@map("delivery_tracking_history")
+}
+
+/// Vínculo atividade pessoal ↔ item externo (§6.8): concluir um não resolve o outro.
+model TaskWorkItem {
+  taskId     String @map("task_id") @db.Uuid
+  workItemId String @map("work_item_id") @db.Uuid
+
+  task     Task             @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  workItem ExternalWorkItem @relation(fields: [workItemId], references: [id], onDelete: Restrict)
+
+  @@id([taskId, workItemId])
+  @@index([workItemId])
+  @@map("task_work_items")
+}
+
+/// Ciclo de execução de um time (§11). Pode conter histórias de vários projetos (RN-019).
+model Sprint {
+  id          String       @id @default(uuid()) @db.Uuid
+  workspaceId String       @map("workspace_id") @db.Uuid
+  /// Time responsável (RN-016).
+  teamId      String       @map("team_id") @db.Uuid
+  name        String       @db.VarChar(80)
+  goal        String?      @db.VarChar(1000)
+  startDate   DateTime     @map("start_date") @db.Date
+  endDate     DateTime     @map("end_date") @db.Date
+  status      SprintStatus @default(PLANNED)
+  closedAt    DateTime?    @map("closed_at") @db.Timestamptz(3)
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+  version     Int          @default(1)
+
+  workspace         Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  team              Team               @relation(fields: [teamId], references: [id], onDelete: Restrict)
+  memberships       SprintMembership[]
+  intendedRefinings Refinement[]
+  riskLinks         RiskLink[]
+  journalLinks      JournalLink[]
+
+  @@index([teamId, startDate])
+  @@index([workspaceId, status])
+  @@map("sprints")
+}
+
+/// Participação de um item em uma sprint (§11.5). Sair registra `exited_at`; nada é apagado (RN-010).
+model SprintMembership {
+  id         String            @id @default(uuid()) @db.Uuid
+  sprintId   String            @map("sprint_id") @db.Uuid
+  workItemId String            @map("work_item_id") @db.Uuid
+  enteredAt  DateTime          @default(now()) @map("entered_at") @db.Timestamptz(3)
+  exitedAt   DateTime?         @map("exited_at") @db.Timestamptz(3)
+  scopeType  SprintScopeType   @map("scope_type")
+  exitReason SprintExitReason? @map("exit_reason")
+
+  sprint   Sprint           @relation(fields: [sprintId], references: [id], onDelete: Restrict)
+  workItem ExternalWorkItem @relation(fields: [workItemId], references: [id], onDelete: Restrict)
+
+  @@index([sprintId])
+  @@index([workItemId])
+  @@map("sprint_memberships")
+}
+
+/// Entrega planejada de um projeto (§12). Pode reunir itens de vários times (CA-008).
+model Release {
+  id            String        @id @default(uuid()) @db.Uuid
+  workspaceId   String        @map("workspace_id") @db.Uuid
+  /// Um projeto na versão inicial (RN-017).
+  projectId     String        @map("project_id") @db.Uuid
+  name          String        @db.VarChar(80)
+  description   String?       @db.VarChar(2000)
+  committedDate DateTime?     @map("committed_date") @db.Date
+  /// Previsão manual; a calculada chega com o motor de previsibilidade (§25).
+  forecastDate  DateTime?     @map("forecast_date") @db.Date
+  status        ReleaseStatus @default(PLANNED)
+  closedAt      DateTime?     @map("closed_at") @db.Timestamptz(3)
+  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+  version       Int           @default(1)
+
+  workspace       Workspace                @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  project         Project                  @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  memberships     ReleaseMembership[]
+  milestones      ReleaseMilestone[]
+  forecastHistory ReleaseForecastHistory[]
+  riskLinks       RiskLink[]
+  journalLinks    JournalLink[]
+
+  @@index([projectId])
+  @@index([workspaceId, status])
+  @@map("releases")
+}
+
+/// Item no escopo de uma release (§12.4). Remover registra `removed_at` (histórico de escopo).
+model ReleaseMembership {
+  id         String    @id @default(uuid()) @db.Uuid
+  releaseId  String    @map("release_id") @db.Uuid
+  workItemId String    @map("work_item_id") @db.Uuid
+  isRequired Boolean   @default(true) @map("is_required")
+  addedAt    DateTime  @default(now()) @map("added_at") @db.Timestamptz(3)
+  removedAt  DateTime? @map("removed_at") @db.Timestamptz(3)
+
+  release  Release          @relation(fields: [releaseId], references: [id], onDelete: Restrict)
+  workItem ExternalWorkItem @relation(fields: [workItemId], references: [id], onDelete: Restrict)
+
+  @@index([releaseId])
+  @@index([workItemId])
+  @@map("release_memberships")
+}
+
+/// Marco intermediário de uma release (§12.2, §34.9).
+model ReleaseMilestone {
+  id          String    @id @default(uuid()) @db.Uuid
+  releaseId   String    @map("release_id") @db.Uuid
+  name        String    @db.VarChar(120)
+  targetDate  DateTime? @map("target_date") @db.Date
+  completedAt DateTime? @map("completed_at") @db.Timestamptz(3)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  release Release @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+
+  @@index([releaseId])
+  @@map("release_milestones")
+}
+
+/// Compromisso e previsão da release após cada alteração (§12.5). Somente inserção.
+model ReleaseForecastHistory {
+  id            String    @id @default(uuid()) @db.Uuid
+  releaseId     String    @map("release_id") @db.Uuid
+  changedAt     DateTime  @default(now()) @map("changed_at") @db.Timestamptz(3)
+  actorUserId   String?   @map("actor_user_id") @db.Uuid
+  committedDate DateTime? @map("committed_date") @db.Date
+  forecastDate  DateTime? @map("forecast_date") @db.Date
+
+  release Release @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+
+  @@index([releaseId, changedAt])
+  @@map("release_forecast_history")
+}
+
+/// Preparação do item antes da execução (§15). A situação fica no item (`refinement_status`).
+model Refinement {
+  id                   String   @id @default(uuid()) @db.Uuid
+  workItemId           String   @unique @map("work_item_id") @db.Uuid
+  intendedSprintId     String?  @map("intended_sprint_id") @db.Uuid
+  openQuestions        String?  @map("open_questions") @db.VarChar(2000)
+  pendingItems         String?  @map("pending_items") @db.VarChar(2000)
+  notes                String?  @db.VarChar(2000)
+  /// Justificativa para "pronto" com checklist incompleto (§15.5).
+  readyExceptionReason String?  @map("ready_exception_reason") @db.VarChar(1000)
+  updatedAt            DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  workItem       ExternalWorkItem      @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  intendedSprint Sprint?               @relation(fields: [intendedSprintId], references: [id], onDelete: Restrict)
+  checkItems     RefinementCheckItem[]
+
+  @@index([intendedSprintId])
+  @@map("refinements")
+}
+
+/// Item do checklist de prontidão (§15.4). `checked_at` preenchido = atendido.
+model RefinementCheckItem {
+  id           String    @id @default(uuid()) @db.Uuid
+  refinementId String    @map("refinement_id") @db.Uuid
+  label        String    @db.VarChar(120)
+  position     Int
+  checkedAt    DateTime? @map("checked_at") @db.Timestamptz(3)
+
+  refinement Refinement @relation(fields: [refinementId], references: [id], onDelete: Cascade)
+
+  @@index([refinementId, position])
+  @@map("refinement_check_items")
+}
+
+/// Risco ou impedimento (§16). Resolvido continua no histórico (RN-008).
+model Risk {
+  id             String           @id @default(uuid()) @db.Uuid
+  workspaceId    String           @map("workspace_id") @db.Uuid
+  title          String           @db.VarChar(200)
+  description    String?          @db.VarChar(5000)
+  type           RiskType         @default(RISK)
+  severity       RiskSeverity     @default(MEDIUM)
+  probability    RiskProbability?
+  impact         String?          @db.VarChar(1000)
+  blockingLevel  BlockingLevel?   @map("blocking_level")
+  status         RiskStatus       @default(OPEN)
+  mitigationPlan String?          @map("mitigation_plan") @db.VarChar(2000)
+  /// Responsável pelo acompanhamento: pode ser alguém de fora do cadastro.
+  owner          String?          @db.VarChar(120)
+  identifiedAt   DateTime         @map("identified_at") @db.Date
+  resolvedAt     DateTime?        @map("resolved_at") @db.Timestamptz(3)
+  resolutionNote String?          @map("resolution_note") @db.VarChar(1000)
+  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+  version        Int              @default(1)
+
+  workspace    Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  links        RiskLink[]
+  journalLinks JournalLink[]
+
+  @@index([workspaceId, status])
+  @@map("risks")
+}
+
+/// Contexto afetado por um risco: exatamente uma referência por linha (CHECK na migration).
+model RiskLink {
+  id         String  @id @default(uuid()) @db.Uuid
+  riskId     String  @map("risk_id") @db.Uuid
+  workItemId String? @map("work_item_id") @db.Uuid
+  sprintId   String? @map("sprint_id") @db.Uuid
+  releaseId  String? @map("release_id") @db.Uuid
+  projectId  String? @map("project_id") @db.Uuid
+  teamId     String? @map("team_id") @db.Uuid
+  taskId     String? @map("task_id") @db.Uuid
+
+  risk     Risk              @relation(fields: [riskId], references: [id], onDelete: Cascade)
+  workItem ExternalWorkItem? @relation(fields: [workItemId], references: [id], onDelete: Restrict)
+  sprint   Sprint?           @relation(fields: [sprintId], references: [id], onDelete: Restrict)
+  release  Release?          @relation(fields: [releaseId], references: [id], onDelete: Restrict)
+  project  Project?          @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  team     Team?             @relation(fields: [teamId], references: [id], onDelete: Restrict)
+  task     Task?             @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@unique([riskId, workItemId])
+  @@unique([riskId, sprintId])
+  @@unique([riskId, releaseId])
+  @@unique([riskId, projectId])
+  @@unique([riskId, teamId])
+  @@unique([riskId, taskId])
+  @@index([workItemId])
+  @@index([sprintId])
+  @@index([releaseId])
+  @@index([projectId])
+  @@index([teamId])
+  @@map("risk_links")
+}
+
+/// Acontecimento do diário de bordo (§17). Categoria e descrição obrigatórias (§17.4).
+model JournalEntry {
+  id          String          @id @default(uuid()) @db.Uuid
+  workspaceId String          @map("workspace_id") @db.Uuid
+  category    JournalCategory
+  description String          @db.VarChar(5000)
+  /// Preenchida com hoje no fuso do workspace, ajustável (§17.4).
+  occurredOn  DateTime        @map("occurred_on") @db.Date
+  createdAt   DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+  version     Int             @default(1)
+
+  workspace Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  links     JournalLink[]
+
+  @@index([workspaceId, occurredOn])
+  @@map("journal_entries")
+}
+
+/// Contexto de um acontecimento: exatamente uma referência por linha (CHECK na migration).
+model JournalLink {
+  id         String  @id @default(uuid()) @db.Uuid
+  entryId    String  @map("entry_id") @db.Uuid
+  teamId     String? @map("team_id") @db.Uuid
+  projectId  String? @map("project_id") @db.Uuid
+  sprintId   String? @map("sprint_id") @db.Uuid
+  releaseId  String? @map("release_id") @db.Uuid
+  workItemId String? @map("work_item_id") @db.Uuid
+  riskId     String? @map("risk_id") @db.Uuid
+
+  entry    JournalEntry      @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  team     Team?             @relation(fields: [teamId], references: [id], onDelete: Restrict)
+  project  Project?          @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  sprint   Sprint?           @relation(fields: [sprintId], references: [id], onDelete: Restrict)
+  release  Release?          @relation(fields: [releaseId], references: [id], onDelete: Restrict)
+  workItem ExternalWorkItem? @relation(fields: [workItemId], references: [id], onDelete: Restrict)
+  risk     Risk?             @relation(fields: [riskId], references: [id], onDelete: Restrict)
+
+  @@unique([entryId, teamId])
+  @@unique([entryId, projectId])
+  @@unique([entryId, sprintId])
+  @@unique([entryId, releaseId])
+  @@unique([entryId, workItemId])
+  @@unique([entryId, riskId])
+  @@index([teamId])
+  @@index([projectId])
+  @@index([sprintId])
+  @@index([releaseId])
+  @@index([workItemId])
+  @@index([riskId])
+  @@map("journal_links")
 }

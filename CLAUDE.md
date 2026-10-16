@@ -6,7 +6,7 @@ Aplicação pessoal para um Tech Lead acompanhar atividades próprias, entregas 
 
 - **Especificação (fonte de verdade do produto):** `docs/main.md`. Consulte a seção do módulo antes de implementá-lo e cite regras pelo ID (`RN-xxx`, `CA-xxx`, `§n`).
 - **Design system:** `docs/design-system.md` + showcase vivo em `/design-system`.
-- **Decisões por etapa:** `docs/architecture/` (`fundacao-tecnica.md`, `organizacao-gestao-pessoal.md`).
+- **Decisões por etapa:** `docs/architecture/` (`fundacao-tecnica.md`, `organizacao-gestao-pessoal.md`, `acompanhamento-entregas.md`).
 
 ## Stack e comandos
 
@@ -31,15 +31,15 @@ Antes de dizer que algo está pronto: `typecheck`, `lint`, `test` e `build` pass
 
 | Pasta                                        | Conteúdo                                                                                      |
 | -------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `apps/web/src/app/`                          | Rotas (App Router). `globals.css` contém **todos** os tokens. `(auth)` = setup/login; `(app)` = shell autenticado. |
+| `apps/web/src/app/`                          | Rotas (App Router). `globals.css` contém **todos** os tokens. `(auth)` = setup/login; `(app)` = shell autenticado, com os grupos `(delivery)` e `(organization)` (sub-navegação por área). |
 | `apps/web/src/components/ui/`                | Primitivas genéricas (Button, Badge, Card, Input, Table, Tabs, Alert…). Sem regra de negócio. |
-| `apps/web/src/components/domain/`            | Componentes com regra de produto (StatusBadge, DateDelta, CapacityBar, FocusCard…).           |
-| `apps/web/src/components/app/`               | Peças do shell da aplicação (Brand, AppNav, PageHeader, ApiUnavailable, FormError, skeletons). |
-| `apps/web/src/features/<módulo>/`            | Formulários e componentes de um módulo (identity, workspace, organization, tasks, context…).  |
+| `apps/web/src/components/domain/`            | Componentes com regra de produto (StatusBadge, DateDelta, HealthIndicator, WorkItemRow, FocusCard…).           |
+| `apps/web/src/components/app/`               | Peças do shell da aplicação (Brand, AppNav, SectionNav, PageHeader, ApiUnavailable, FormError, skeletons). |
+| `apps/web/src/features/<módulo>/`            | Formulários e componentes de um módulo (identity, workspace, organization, tasks, work-items, sprints, releases, risks, journal, context…).  |
 | `apps/web/src/lib/api/`                      | Cliente da API: `server.ts` (`loadApi` em Server Components), `client.ts` + `use-api-form.ts` + `use-api-action.ts` (navegador). |
 | `apps/web/src/lib/design-system/status.ts`   | Mapa único de enums do domínio → rótulo pt-BR, tom e ícone.                                   |
 | `apps/web/src/proxy.ts`                      | Repasse de `/api/v1` para a API e checagem otimista de sessão.                                |
-| `apps/api/src/modules/<módulo>/`             | Módulos do backend (§34): identity, workspace, teams (+ associações), projects, developers, tasks (+ fila de foco), dashboard, audit, health. |
+| `apps/api/src/modules/<módulo>/`             | Módulos do backend (§34): identity, workspace, teams (+ associações), projects, developers, tasks (+ fila de foco), work-items (+ acompanhamento, refinamento, origens), sprints, releases, risks, journal, dashboard, audit, health. |
 | `apps/api/src/common/`, `infrastructure/`    | Guards, pipes, filtro de erros; config (Zod) e Prisma.                                        |
 | `apps/api/prisma/`                           | `schema.prisma` e migrations versionadas.                                                     |
 | `apps/planning-worker/`                      | Worker BullMQ da fila `planning`.                                                             |

@@ -24,6 +24,7 @@ import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle }
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/misc";
 import { ContextBar, ContextBarSkeleton } from "@/features/context/context-bar";
+import { DeliverySections } from "@/features/dashboard/delivery-sections";
 import { readContext } from "@/features/context/context.server";
 import { loadApi, requireMe, withQuery } from "@/lib/api/server";
 import { formatBusinessDate, formatBusinessDateLong } from "@/lib/format";
@@ -144,6 +145,8 @@ function DashboardView({ data }: { data: Dashboard }) {
         </div>
       </div>
 
+      <DeliverySections data={data} />
+
       <Card>
         <CardHeader>
           <CardTitle>Organização</CardTitle>
@@ -159,7 +162,7 @@ function DashboardView({ data }: { data: Dashboard }) {
         </CardContent>
       </Card>
       <p className="text-xs text-muted-foreground">
-        Entregas críticas, sprints, releases, capacidade e recomendações entram no dashboard nas próximas etapas.
+        Capacidade e recomendações entram no dashboard nas próximas etapas.
       </p>
     </>
   );
