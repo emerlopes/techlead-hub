@@ -6,6 +6,7 @@ import { Suspense } from "react";
 import { z } from "zod";
 import { ApiUnavailable } from "@/components/app/api-unavailable";
 import { DetailSkeleton } from "@/components/app/page-skeletons";
+import { DeleteButton } from "@/components/app/delete-button";
 import { PageHeader } from "@/components/app/page-header";
 import { DateDelta } from "@/components/domain/date-delta";
 import { ContextChip, DomainTag } from "@/components/domain/domain-tag";
@@ -73,7 +74,12 @@ async function ReleaseView({ params, searchParams }: PageProps<"/releases/[id]">
           </span>
         }
         description={r.description ?? undefined}
-        actions={<ReleaseActions release={r} />}
+        actions={
+          <>
+            <ReleaseActions release={r} />
+            <DeleteButton path={`/releases/${r.id}`} redirectTo="/releases" question="Excluir a release definitivamente? Marcos e escopo saem junto; as sprints ficam sem release." />
+          </>
+        }
       />
 
       {query.generated !== undefined && Number.isInteger(generated) && (

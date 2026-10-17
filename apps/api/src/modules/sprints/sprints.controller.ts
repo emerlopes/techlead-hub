@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Param, Patch, Post, Query } from "@nestjs/common";
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query } from "@nestjs/common";
 import {
   addSprintItemSchema,
   closeSprintSchema,
@@ -39,6 +39,13 @@ export class SprintsController {
   @Get(":id")
   get(@CurrentAuth() auth: AuthContext, @Param("id", UuidParamPipe) id: string): Promise<SprintDetail> {
     return this.sprints.get(auth, id);
+  }
+
+  /** Exclusão definitiva; vínculos e históricos dependentes saem em cascata. */
+  @Delete(":id")
+  @HttpCode(204)
+  remove(@CurrentAuth() auth: AuthContext, @Param("id", UuidParamPipe) id: string): Promise<void> {
+    return this.sprints.remove(auth, id);
   }
 
   @Patch(":id")

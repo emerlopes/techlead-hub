@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { ApiUnavailable } from "@/components/app/api-unavailable";
 import { DetailSkeleton } from "@/components/app/page-skeletons";
+import { DeleteButton } from "@/components/app/delete-button";
 import { PageHeader } from "@/components/app/page-header";
 import { HistoryList } from "@/components/domain/history-list";
 import { LinkChips } from "@/components/domain/link-chips";
@@ -56,7 +57,12 @@ async function RiskView({ params }: Pick<PageProps<"/risks/[id]">, "params">) {
             {r.blockingLevel && <StatusBadge meta={blockingLevel[r.blockingLevel]} size="sm" variant="outline" />}
           </span>
         }
-        actions={<RiskStatusActions risk={r} />}
+        actions={
+          <>
+            <RiskStatusActions risk={r} />
+            <DeleteButton path={`/risks/${r.id}`} redirectTo="/risks" question="Excluir o risco definitivamente?" />
+          </>
+        }
       />
 
       {r.status === "RESOLVED" && (

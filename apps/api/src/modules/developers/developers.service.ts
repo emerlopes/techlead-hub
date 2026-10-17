@@ -135,4 +135,11 @@ export class DevelopersService {
     });
     return this.get(auth, id);
   }
+
+  async remove(auth: AuthContext, id: string): Promise<void> {
+    await this.audit.deleteEntity(
+      { entityType: "developer", entityId: id, workspaceId: auth.workspaceId, actorUserId: auth.userId, label: ENTITY },
+      (tx) => tx.developer.deleteMany({ where: { id, workspaceId: auth.workspaceId } }),
+    );
+  }
 }

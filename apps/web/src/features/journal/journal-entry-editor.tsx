@@ -10,7 +10,7 @@ import type { LinkOptions } from "@/features/context/link-options";
 import { formatBusinessDate } from "@/lib/format";
 import { JournalForm } from "./journal-form";
 
-/** Item da linha do tempo com edição no lugar (o registro não é apagado, §17.4). */
+/** Item da linha do tempo com edição no lugar; a exclusão fica no modo de edição. */
 export function JournalEntryEditor({ entry, options, last }: { entry: Entry; options: LinkOptions; last?: boolean }) {
   const [editing, setEditing] = useState(false);
   if (editing) {

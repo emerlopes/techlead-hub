@@ -469,4 +469,11 @@ export class WorkItemsService {
     const source = await this.prisma.externalSource.findFirst({ where: { id: sourceId, workspaceId: auth.workspaceId } });
     if (!source) throw ruleViolation("Origem não encontrada.", "sourceId");
   }
+
+  async remove(auth: AuthContext, id: string): Promise<void> {
+    await this.audit.deleteEntity(
+      { entityType: "work_item", entityId: id, workspaceId: auth.workspaceId, actorUserId: auth.userId, label: ENTITY },
+      (tx) => tx.externalWorkItem.deleteMany({ where: { id, workspaceId: auth.workspaceId } }),
+    );
+  }
 }

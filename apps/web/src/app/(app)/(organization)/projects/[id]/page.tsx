@@ -7,6 +7,7 @@ import { Suspense } from "react";
 import { z } from "zod";
 import { ApiUnavailable } from "@/components/app/api-unavailable";
 import { DetailSkeleton } from "@/components/app/page-skeletons";
+import { DeleteButton } from "@/components/app/delete-button";
 import { PageHeader } from "@/components/app/page-header";
 import { ContextChip, DomainTag } from "@/components/domain/domain-tag";
 import { StatusBadge } from "@/components/domain/status-badge";
@@ -73,7 +74,12 @@ async function ProjectView({ params }: Pick<PageProps<"/projects/[id]">, "params
           </span>
         }
         description={p.description ?? undefined}
-        actions={<StatusActions path={`/projects/${p.id}`} version={p.version} actions={transitions[p.status]} />}
+        actions={
+          <>
+            <StatusActions path={`/projects/${p.id}`} version={p.version} actions={transitions[p.status]} />
+            <DeleteButton path={`/projects/${p.id}`} redirectTo="/projects" question="Excluir o projeto definitivamente? Itens, releases, alocações e vínculos dele também serão removidos." />
+          </>
+        }
       />
 
       {archived && (

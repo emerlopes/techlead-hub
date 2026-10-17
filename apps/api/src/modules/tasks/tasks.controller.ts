@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Param, Patch, Post, Put, Query } from "@nestjs/common";
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Put, Query } from "@nestjs/common";
 import {
   completeTaskSchema,
   createTaskSchema,
@@ -40,6 +40,13 @@ export class TasksController {
   @Get(":id")
   get(@CurrentAuth() auth: AuthContext, @Param("id", UuidParamPipe) id: string): Promise<Task> {
     return this.tasks.get(auth, id);
+  }
+
+  /** Exclusão definitiva; vínculos e históricos dependentes saem em cascata. */
+  @Delete(":id")
+  @HttpCode(204)
+  remove(@CurrentAuth() auth: AuthContext, @Param("id", UuidParamPipe) id: string): Promise<void> {
+    return this.tasks.remove(auth, id);
   }
 
   @Patch(":id")

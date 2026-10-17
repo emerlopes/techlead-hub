@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { ApiUnavailable } from "@/components/app/api-unavailable";
 import { DetailSkeleton } from "@/components/app/page-skeletons";
+import { DeleteButton } from "@/components/app/delete-button";
 import { PageHeader } from "@/components/app/page-header";
 import { AllocationRow } from "@/components/domain/allocation-row";
 import { ContextChip, DomainTag } from "@/components/domain/domain-tag";
@@ -78,7 +79,12 @@ async function PlanView({ params }: Pick<PageProps<"/plans/[id]">, "params">) {
             <span className="text-xs tabular">{formatBusinessRange(p.startDate, p.endDate)}</span>
           </span>
         }
-        actions={<PlanActions plan={p} />}
+        actions={
+          <>
+            <PlanActions plan={p} />
+            <DeleteButton path={`/execution-plans/${p.id}`} redirectTo="/plans" question="Excluir o plano de execução definitivamente?" />
+          </>
+        }
       />
 
       {p.status === "DRAFT" && (

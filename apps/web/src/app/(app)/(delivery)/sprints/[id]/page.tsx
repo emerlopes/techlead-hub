@@ -7,6 +7,7 @@ import { Suspense } from "react";
 import { z } from "zod";
 import { ApiUnavailable } from "@/components/app/api-unavailable";
 import { DetailSkeleton } from "@/components/app/page-skeletons";
+import { DeleteButton } from "@/components/app/delete-button";
 import { PageHeader } from "@/components/app/page-header";
 import { ContextLoadView } from "@/components/domain/context-load";
 import { ContextChip, DomainTag } from "@/components/domain/domain-tag";
@@ -71,7 +72,12 @@ async function SprintView({ params }: Pick<PageProps<"/sprints/[id]">, "params">
             {s.goal && <span className="block text-foreground">{s.goal}</span>}
           </span>
         }
-        actions={<SprintActions sprint={s} />}
+        actions={
+          <>
+            <SprintActions sprint={s} />
+            <DeleteButton path={`/sprints/${s.id}`} redirectTo="/sprints" question="Excluir a sprint definitivamente? Os itens voltam a ficar fora de sprint." />
+          </>
+        }
       />
 
       {s.status === "PLANNED" && (

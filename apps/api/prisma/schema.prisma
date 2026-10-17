@@ -217,8 +217,8 @@ model TeamProject {
   endedAt   DateTime? @map("ended_at") @db.Timestamptz(3)
   isPrimary Boolean   @default(false) @map("is_primary")
 
-  team    Team    @relation(fields: [teamId], references: [id], onDelete: Restrict)
-  project Project @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  team    Team    @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([teamId])
   @@index([projectId])
@@ -258,8 +258,8 @@ model TeamDeveloper {
   startedAt   DateTime  @default(now()) @map("started_at") @db.Timestamptz(3)
   endedAt     DateTime? @map("ended_at") @db.Timestamptz(3)
 
-  team      Team      @relation(fields: [teamId], references: [id], onDelete: Restrict)
-  developer Developer @relation(fields: [developerId], references: [id], onDelete: Restrict)
+  team      Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  developer Developer @relation(fields: [developerId], references: [id], onDelete: Cascade)
 
   @@index([teamId])
   @@index([developerId])
@@ -304,7 +304,7 @@ model TaskTeam {
   teamId String @map("team_id") @db.Uuid
 
   task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  team Team @relation(fields: [teamId], references: [id], onDelete: Restrict)
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
   @@id([taskId, teamId])
   @@index([teamId])
@@ -316,7 +316,7 @@ model TaskProject {
   projectId String @map("project_id") @db.Uuid
 
   task    Task    @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  project Project @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@id([taskId, projectId])
   @@index([projectId])
@@ -500,7 +500,7 @@ model ExternalWorkItem {
 
   workspace          Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
   source             ExternalSource      @relation(fields: [sourceId], references: [id], onDelete: Restrict)
-  project            Project             @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  project            Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
   tracking           DeliveryTracking?
   refinement         Refinement?
   sprintMemberships  SprintMembership[]
@@ -537,8 +537,8 @@ model DeliveryTracking {
   updatedAt            DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   workItem      ExternalWorkItem          @relation(fields: [workItemId], references: [id], onDelete: Cascade)
-  executingTeam Team?                     @relation(fields: [executingTeamId], references: [id], onDelete: Restrict)
-  developer     Developer?                @relation(fields: [developerId], references: [id], onDelete: Restrict)
+  executingTeam Team?                     @relation(fields: [executingTeamId], references: [id], onDelete: SetNull)
+  developer     Developer?                @relation(fields: [developerId], references: [id], onDelete: SetNull)
   history       DeliveryTrackingHistory[]
 
   @@index([executingTeamId])
@@ -575,7 +575,7 @@ model TaskWorkItem {
   workItemId String @map("work_item_id") @db.Uuid
 
   task     Task             @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  workItem ExternalWorkItem @relation(fields: [workItemId], references: [id], onDelete: Restrict)
+  workItem ExternalWorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
 
   @@id([taskId, workItemId])
   @@index([workItemId])
@@ -601,8 +601,8 @@ model Sprint {
   version     Int          @default(1)
 
   workspace         Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
-  team              Team               @relation(fields: [teamId], references: [id], onDelete: Restrict)
-  release           Release?           @relation(fields: [releaseId], references: [id], onDelete: Restrict)
+  team              Team               @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  release           Release?           @relation(fields: [releaseId], references: [id], onDelete: SetNull)
   memberships       SprintMembership[]
   intendedRefinings Refinement[]
   riskLinks         RiskLink[]
@@ -624,8 +624,8 @@ model SprintMembership {
   scopeType  SprintScopeType   @map("scope_type")
   exitReason SprintExitReason? @map("exit_reason")
 
-  sprint   Sprint           @relation(fields: [sprintId], references: [id], onDelete: Restrict)
-  workItem ExternalWorkItem @relation(fields: [workItemId], references: [id], onDelete: Restrict)
+  sprint   Sprint           @relation(fields: [sprintId], references: [id], onDelete: Cascade)
+  workItem ExternalWorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
 
   @@index([sprintId])
   @@index([workItemId])
@@ -654,7 +654,7 @@ model Release {
   version       Int           @default(1)
 
   workspace       Workspace                @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
-  project         Project                  @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  project         Project                  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   memberships     ReleaseMembership[]
   milestones      ReleaseMilestone[]
   forecastHistory ReleaseForecastHistory[]
@@ -676,8 +676,8 @@ model ReleaseMembership {
   addedAt    DateTime  @default(now()) @map("added_at") @db.Timestamptz(3)
   removedAt  DateTime? @map("removed_at") @db.Timestamptz(3)
 
-  release  Release          @relation(fields: [releaseId], references: [id], onDelete: Restrict)
-  workItem ExternalWorkItem @relation(fields: [workItemId], references: [id], onDelete: Restrict)
+  release  Release          @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  workItem ExternalWorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
 
   @@index([releaseId])
   @@index([workItemId])
@@ -727,7 +727,7 @@ model Refinement {
   updatedAt            DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   workItem       ExternalWorkItem      @relation(fields: [workItemId], references: [id], onDelete: Cascade)
-  intendedSprint Sprint?               @relation(fields: [intendedSprintId], references: [id], onDelete: Restrict)
+  intendedSprint Sprint?               @relation(fields: [intendedSprintId], references: [id], onDelete: SetNull)
   checkItems     RefinementCheckItem[]
 
   @@index([intendedSprintId])
@@ -790,11 +790,11 @@ model RiskLink {
   taskId     String? @map("task_id") @db.Uuid
 
   risk     Risk              @relation(fields: [riskId], references: [id], onDelete: Cascade)
-  workItem ExternalWorkItem? @relation(fields: [workItemId], references: [id], onDelete: Restrict)
-  sprint   Sprint?           @relation(fields: [sprintId], references: [id], onDelete: Restrict)
-  release  Release?          @relation(fields: [releaseId], references: [id], onDelete: Restrict)
-  project  Project?          @relation(fields: [projectId], references: [id], onDelete: Restrict)
-  team     Team?             @relation(fields: [teamId], references: [id], onDelete: Restrict)
+  workItem ExternalWorkItem? @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  sprint   Sprint?           @relation(fields: [sprintId], references: [id], onDelete: Cascade)
+  release  Release?          @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  project  Project?          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  team     Team?             @relation(fields: [teamId], references: [id], onDelete: Cascade)
   task     Task?             @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
   @@unique([riskId, workItemId])
@@ -842,12 +842,12 @@ model JournalLink {
   riskId     String? @map("risk_id") @db.Uuid
 
   entry    JournalEntry      @relation(fields: [entryId], references: [id], onDelete: Cascade)
-  team     Team?             @relation(fields: [teamId], references: [id], onDelete: Restrict)
-  project  Project?          @relation(fields: [projectId], references: [id], onDelete: Restrict)
-  sprint   Sprint?           @relation(fields: [sprintId], references: [id], onDelete: Restrict)
-  release  Release?          @relation(fields: [releaseId], references: [id], onDelete: Restrict)
-  workItem ExternalWorkItem? @relation(fields: [workItemId], references: [id], onDelete: Restrict)
-  risk     Risk?             @relation(fields: [riskId], references: [id], onDelete: Restrict)
+  team     Team?             @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  project  Project?          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sprint   Sprint?           @relation(fields: [sprintId], references: [id], onDelete: Cascade)
+  release  Release?          @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  workItem ExternalWorkItem? @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  risk     Risk?             @relation(fields: [riskId], references: [id], onDelete: Cascade)
 
   @@unique([entryId, teamId])
   @@unique([entryId, projectId])
@@ -918,7 +918,7 @@ model WorkSchedule {
   version       Int       @default(1)
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
-  developer Developer @relation(fields: [developerId], references: [id], onDelete: Restrict)
+  developer Developer @relation(fields: [developerId], references: [id], onDelete: Cascade)
 
   @@index([developerId, validFrom])
   @@map("work_schedules")
@@ -944,7 +944,7 @@ model AvailabilityException {
   version          Int                       @default(1)
 
   workspace Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
-  developer Developer? @relation(fields: [developerId], references: [id], onDelete: Restrict)
+  developer Developer? @relation(fields: [developerId], references: [id], onDelete: Cascade)
 
   @@index([developerId, startDate])
   @@index([workspaceId, startDate])
@@ -971,9 +971,9 @@ model CapacityAllocation {
   version         Int               @default(1)
 
   workspace Workspace                   @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
-  developer Developer                   @relation(fields: [developerId], references: [id], onDelete: Restrict)
-  team      Team?                       @relation(fields: [teamId], references: [id], onDelete: Restrict)
-  project   Project?                    @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  developer Developer                   @relation(fields: [developerId], references: [id], onDelete: Cascade)
+  team      Team?                       @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  project   Project?                    @relation(fields: [projectId], references: [id], onDelete: Cascade)
   history   CapacityAllocationHistory[]
 
   @@index([developerId, validFrom])
@@ -1086,9 +1086,9 @@ model ExecutionPlan {
   version              Int                  @default(1)
 
   workspace Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
-  developer Developer           @relation(fields: [developerId], references: [id], onDelete: Restrict)
-  team      Team?               @relation(fields: [teamId], references: [id], onDelete: Restrict)
-  project   Project?            @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  developer Developer           @relation(fields: [developerId], references: [id], onDelete: Cascade)
+  team      Team?               @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  project   Project?            @relation(fields: [projectId], references: [id], onDelete: SetNull)
   items     ExecutionPlanItem[]
 
   @@index([developerId, status])
@@ -1110,7 +1110,7 @@ model ExecutionPlanItem {
   notes             String?   @db.VarChar(500)
 
   plan     ExecutionPlan    @relation(fields: [planId], references: [id], onDelete: Cascade)
-  workItem ExternalWorkItem @relation(fields: [workItemId], references: [id], onDelete: Restrict)
+  workItem ExternalWorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
 
   @@unique([planId, workItemId])
   @@unique([planId, position])
@@ -1136,8 +1136,8 @@ model WorkDependency {
   version             Int              @default(1)
 
   workspace   Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
-  predecessor ExternalWorkItem? @relation("DependencyPredecessor", fields: [predecessorId], references: [id], onDelete: Restrict)
-  successor   ExternalWorkItem  @relation("DependencySuccessor", fields: [successorId], references: [id], onDelete: Restrict)
+  predecessor ExternalWorkItem? @relation("DependencyPredecessor", fields: [predecessorId], references: [id], onDelete: Cascade)
+  successor   ExternalWorkItem  @relation("DependencySuccessor", fields: [successorId], references: [id], onDelete: Cascade)
 
   @@unique([predecessorId, successorId, dependencyType])
   @@index([successorId])

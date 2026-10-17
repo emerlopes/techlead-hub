@@ -7,6 +7,7 @@ import { Suspense } from "react";
 import { z } from "zod";
 import { ApiUnavailable } from "@/components/app/api-unavailable";
 import { DetailSkeleton } from "@/components/app/page-skeletons";
+import { DeleteButton } from "@/components/app/delete-button";
 import { PageHeader } from "@/components/app/page-header";
 import { ContextChip, DomainTag } from "@/components/domain/domain-tag";
 import { StatusBadge } from "@/components/domain/status-badge";
@@ -62,7 +63,8 @@ async function TeamDetail({ params }: Pick<PageProps<"/teams/[id]">, "params">) 
         }
         description={t.description ?? undefined}
         actions={
-          <StatusActions
+          <>
+            <StatusActions
             path={`/teams/${t.id}`}
             version={t.version}
             actions={
@@ -71,6 +73,8 @@ async function TeamDetail({ params }: Pick<PageProps<"/teams/[id]">, "params">) 
                 : [{ status: "ACTIVE", label: "Reativar", icon: "power" }]
             }
           />
+            <DeleteButton path={`/teams/${t.id}`} redirectTo="/teams" question="Excluir o time definitivamente? Sprints, alocações e vínculos dele também serão removidos." />
+          </>
         }
       />
 

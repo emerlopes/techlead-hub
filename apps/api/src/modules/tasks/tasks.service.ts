@@ -208,4 +208,11 @@ export class TasksService {
       if (count !== workItemIds.length) throw ruleViolation("Item externo não encontrado.", "workItemIds");
     }
   }
+
+  async remove(auth: AuthContext, id: string): Promise<void> {
+    await this.audit.deleteEntity(
+      { entityType: "task", entityId: id, workspaceId: auth.workspaceId, actorUserId: auth.userId, label: ENTITY },
+      (tx) => tx.task.deleteMany({ where: { id, workspaceId: auth.workspaceId } }),
+    );
+  }
 }

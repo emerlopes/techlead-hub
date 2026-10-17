@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Query } from "@nestjs/common";
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query } from "@nestjs/common";
 import {
   createProjectSchema,
   type Project,
@@ -39,6 +39,13 @@ export class ProjectsController {
   @Get(":id")
   get(@CurrentAuth() auth: AuthContext, @Param("id", UuidParamPipe) id: string): Promise<ProjectDetail> {
     return this.projects.get(auth, id);
+  }
+
+  /** Exclusão definitiva; vínculos e históricos dependentes saem em cascata. */
+  @Delete(":id")
+  @HttpCode(204)
+  remove(@CurrentAuth() auth: AuthContext, @Param("id", UuidParamPipe) id: string): Promise<void> {
+    return this.projects.remove(auth, id);
   }
 
   @Patch(":id")

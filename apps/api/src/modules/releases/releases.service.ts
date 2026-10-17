@@ -523,4 +523,11 @@ export class ReleasesService {
     if (!milestone) throw notFound("Marco");
     return milestone;
   }
+
+  async remove(auth: AuthContext, id: string): Promise<void> {
+    await this.audit.deleteEntity(
+      { entityType: "release", entityId: id, workspaceId: auth.workspaceId, actorUserId: auth.userId, label: ENTITY },
+      (tx) => tx.release.deleteMany({ where: { id, workspaceId: auth.workspaceId } }),
+    );
+  }
 }

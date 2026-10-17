@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Query } from "@nestjs/common";
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query } from "@nestjs/common";
 import {
   createRiskSchema,
   type Risk,
@@ -36,6 +36,13 @@ export class RisksController {
   @Get(":id")
   get(@CurrentAuth() auth: AuthContext, @Param("id", UuidParamPipe) id: string): Promise<RiskDetail> {
     return this.risks.get(auth, id);
+  }
+
+  /** Exclusão definitiva; vínculos e históricos dependentes saem em cascata. */
+  @Delete(":id")
+  @HttpCode(204)
+  remove(@CurrentAuth() auth: AuthContext, @Param("id", UuidParamPipe) id: string): Promise<void> {
+    return this.risks.remove(auth, id);
   }
 
   @Patch(":id")

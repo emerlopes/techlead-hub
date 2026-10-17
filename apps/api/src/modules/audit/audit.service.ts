@@ -1,9 +1,24 @@
 import { Injectable } from "@nestjs/common";
 import type { HistoryEntry } from "@tlh/shared-contracts";
 import type { Prisma } from "../../generated/prisma/client";
+import { notFound } from "../../common/persistence";
 import { PrismaService } from "../../infrastructure/prisma/prisma.service";
 
+/** Entidades com exclusão definitiva; a trilha de auditoria guarda o evento após a remoção. */
+export type DeletableEntity =
+  | "team"
+  | "project"
+  | "developer"
+  | "task"
+  | "work_item"
+  | "sprint"
+  | "release"
+  | "risk"
+  | "journal_entry"
+  | "execution_plan";
+
 export type AuditAction =
+  | `${DeletableEntity}.deleted`
   | "auth.setup"
   | "auth.login"
   | "auth.login_failed"
@@ -105,6 +120,8 @@ export type AuditInput = {
 
 type AuditClient = Pick<PrismaService, "auditEvent">;
 
+type TransactionClient = Parameters<Parameters<PrismaService["$transaction"]>[0]>[0];
+
 /** Registro somente-inserção de eventos relevantes (§34.18, RNF-004, RNF-022). */
 @Injectable()
 export class AuditService {
@@ -113,6 +130,23 @@ export class AuditService {
   /** Aceita o cliente de uma transação para que o evento e a mudança sejam atômicos. */
   async record(event: AuditInput, client: AuditClient = this.prisma): Promise<void> {
     await client.auditEvent.create({ data: event });
+  }
+
+  /**
+   * Exclusão definitiva escopada ao workspace: `remove` deve filtrar por `workspaceId` e devolver a
+   * contagem (0 → 404). Vínculos, históricos e filhos saem pelas FKs em cascata, na mesma transação
+   * do evento de auditoria.
+   */
+  async deleteEntity(
+    target: { entityType: DeletableEntity; entityId: string; workspaceId: string; actorUserId: string; label: string },
+    remove: (tx: TransactionClient) => Promise<{ count: number }>,
+  ): Promise<void> {
+    const { label, ...event } = target;
+    await this.prisma.$transaction(async (tx) => {
+      const { count } = await remove(tx);
+      if (count === 0) throw notFound(label);
+      await this.record({ ...event, action: `${event.entityType}.deleted` }, tx);
+    });
   }
 
   /**
