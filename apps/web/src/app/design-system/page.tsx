@@ -52,6 +52,8 @@ import { CapacityIssues } from "@/components/domain/capacity-issues";
 import { ConfidenceMeter } from "@/components/domain/confidence-meter";
 import { ContextLoadView } from "@/components/domain/context-load";
 import { DateDelta } from "@/components/domain/date-delta";
+import { ExecutionTimeline } from "@/components/domain/execution-timeline";
+import { IssueList } from "@/components/domain/issue-list";
 import { ContextChip, DomainTag } from "@/components/domain/domain-tag";
 import { FocusCard } from "@/components/domain/focus-card";
 import { HealthIndicator } from "@/components/domain/health-indicator";
@@ -761,6 +763,13 @@ function DomainStatus() {
         <StatusGroup title="Exceção de calendário" spec="§19.3" map={status.availabilityExceptionType} />
         <StatusGroup title="Utilização planejada" spec="§25.5" map={status.capacityLevel} />
         <StatusGroup title="Inconsistência de alocação" spec="§20.5 · CA-011" map={status.capacityIssueType} />
+        <StatusGroup title="Modo de execução" spec="§22.2" map={status.executionMode} />
+        <StatusGroup title="Redistribuição" spec="§23" map={status.redistributionPolicy} />
+        <StatusGroup title="Plano de execução" spec="§22.3" map={status.executionPlanStatus} />
+        <StatusGroup title="Item na projeção do plano" spec="§22 · CA-018" map={status.planItemState} />
+        <StatusGroup title="Sinalização do plano" spec="§22.5 · §24" map={status.planIssueType} />
+        <StatusGroup title="Tipo de dependência" spec="§24.3" map={status.dependencyType} />
+        <StatusGroup title="Dependência no cálculo" spec="§24.4" map={status.dependencyState} />
       </div>
       <Specimen title="Variantes de badge" note="subtle (padrão) · outline · solid · dot">
         <StatusBadge meta={status.healthStatus.AT_RISK} />
@@ -835,10 +844,40 @@ function Predictability() {
           <AllocationRow allocation={sampleAllocation} hours={12} />
           <AbsenceItem absence={sampleAbsence} />
         </Specimen>
+        <Specimen title="IssueList" note="sinalizações de qualquer catálogo do status.ts, com descrição" className="flex-col items-stretch">
+          <IssueList
+            catalog={status.planIssueType}
+            issues={[{ type: "DEPENDENCY_UNKNOWN" }, { type: "UNFINISHED_IN_PERIOD" }]}
+            withDescription
+          />
+        </Specimen>
       </div>
+      <Specimen
+        title="ExecutionTimeline"
+        note="fila do plano dia a dia (§22): barra = horas do item; última linha = uso da capacidade do contexto; hachura = dia sem capacidade"
+        className="flex-col items-stretch"
+      >
+        <ExecutionTimeline
+          days={sampleTimeline.days}
+          capacityByDay={sampleTimeline.capacity}
+          usedByDay={sampleTimeline.used}
+          rows={sampleTimeline.rows}
+        />
+      </Specimen>
     </Section>
   );
 }
+
+const sampleTimeline = {
+  days: ["2026-10-19", "2026-10-20", "2026-10-21", "2026-10-22", "2026-10-23", "2026-10-24", "2026-10-25", "2026-10-26"],
+  capacity: [6, 6, 6, 6, 6, 0, 0, 6],
+  used: [6, 6, 6, 3, 6, 0, 0, 6],
+  rows: [
+    { id: "a", code: "PAY-142", title: "Tokenização do cartão", state: "COMPLETES", hoursByDay: [6, 4, 0, 0, 0, 0, 0, 0] },
+    { id: "b", code: "PAY-155", title: "Antifraude", state: "IN_PROGRESS", hoursByDay: [0, 2, 6, 3, 6, 0, 0, 6] },
+    { id: "c", code: "PAY-160", title: "Parceiro externo", state: "WAITING_DEPENDENCY", hoursByDay: [0, 0, 0, 0, 0, 0, 0, 0] },
+  ],
+} as const;
 
 const sampleTask = {
   id: "00000000-0000-4000-8000-000000000001",

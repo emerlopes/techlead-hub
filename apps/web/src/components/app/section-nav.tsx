@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { isActiveSection, type NavSection } from "@/lib/navigation";
 
 /**
- * Sub-navegação de uma área (Entregas, Capacidade, Organização). Rola na horizontal no mobile sem gerar scroll
+ * Sub-navegação de uma área (Entregas, Capacidade, Planejamento, Organização). Rola na horizontal no mobile sem gerar scroll
  * de página. Usa `usePathname`: renderize dentro de `<Suspense>`.
  */
 export function SectionNav({ section }: { section: NavSection }) {

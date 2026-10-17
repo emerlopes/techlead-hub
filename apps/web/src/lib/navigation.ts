@@ -32,6 +32,15 @@ export const capacitySection: NavSection = {
   ],
 };
 
+/** Filas de execução, paralelismo, redistribuição e dependências (Etapa 5, §22–§24). */
+export const planningSection: NavSection = {
+  label: "Planejamento",
+  items: [
+    { href: "/plans", label: "Planos" },
+    { href: "/dependencies", label: "Dependências" },
+  ],
+};
+
 export const organizationSection: NavSection = {
   label: "Organização",
   items: [

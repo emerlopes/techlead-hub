@@ -19,6 +19,9 @@ export const actionLabels: Record<string, string> = {
   "risk.created": "Registrado",
   "risk.updated": "Atualizado",
   "work_item.estimated": "Estimativa registrada",
+  "execution_plan.created": "Plano criado",
+  "execution_plan.updated": "Plano atualizado",
+  "execution_plan.queue_updated": "Fila alterada",
 };
 
 /** Campos alterados, pelo nome do contrato. */
@@ -70,6 +73,10 @@ export const fieldLabels: Record<string, string> = {
   period: "periodicidade",
   validFrom: "início da vigência",
   validUntil: "fim da vigência",
+  executionMode: "modo de execução",
+  maxParallelItems: "itens simultâneos",
+  redistributionPolicy: "redistribuição",
+  items: "fila",
 };
 
 export function describeFields(fields: readonly string[]): string {

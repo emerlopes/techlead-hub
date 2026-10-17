@@ -10,6 +10,7 @@ import { DevelopersModule } from "./modules/developers/developers.module";
 import { HealthModule } from "./modules/health/health.module";
 import { IdentityModule } from "./modules/identity/identity.module";
 import { JournalModule } from "./modules/journal/journal.module";
+import { PlanningModule } from "./modules/planning/planning.module";
 import { ProjectsModule } from "./modules/projects/projects.module";
 import { ReleasesModule } from "./modules/releases/releases.module";
 import { RisksModule } from "./modules/risks/risks.module";
@@ -36,6 +37,7 @@ import { WorkspaceModule } from "./modules/workspace/workspace.module";
     RisksModule,
     JournalModule,
     CapacityModule,
+    PlanningModule,
     DashboardModule,
     HealthModule,
   ],

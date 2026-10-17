@@ -8,6 +8,8 @@ export * from "./errors";
 export * from "./http";
 export * from "./journal";
 export * from "./organization";
+export * from "./planning";
+export * from "./planning-rules";
 export * from "./releases";
 export * from "./risks";
 export * from "./sprint-calendar";

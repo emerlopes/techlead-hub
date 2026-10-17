@@ -41,6 +41,9 @@ model Workspace {
   availabilityExceptions AvailabilityException[]
   capacityAllocations    CapacityAllocation[]
 
+  executionPlans   ExecutionPlan[]
+  workDependencies WorkDependency[]
+
   @@map("workspaces")
 }
 
@@ -171,6 +174,7 @@ model Team {
   journalLinks JournalLink[]
 
   allocations CapacityAllocation[]
+  plans       ExecutionPlan[]
 
   @@unique([workspaceId, code])
   @@map("teams")
@@ -198,6 +202,7 @@ model Project {
   journalLinks JournalLink[]
 
   allocations CapacityAllocation[]
+  plans       ExecutionPlan[]
 
   @@unique([workspaceId, code])
   @@map("projects")
@@ -239,6 +244,7 @@ model Developer {
   schedules   WorkSchedule[]
   exceptions  AvailabilityException[]
   allocations CapacityAllocation[]
+  plans       ExecutionPlan[]
 
   @@index([workspaceId, status])
   @@map("developers")
@@ -503,6 +509,9 @@ model ExternalWorkItem {
   riskLinks          RiskLink[]
   journalLinks       JournalLink[]
   estimates          EffortEstimate[]
+  planItems          ExecutionPlanItem[]
+  successorOf        WorkDependency[]    @relation("DependencyPredecessor")
+  dependsOn          WorkDependency[]    @relation("DependencySuccessor")
 
   @@unique([sourceId, externalKey])
   @@index([workspaceId, projectId])
@@ -1013,4 +1022,126 @@ model EffortEstimate {
 
   @@index([workItemId, estimatedAt])
   @@map("effort_estimates")
+}
+
+// ---------------------------------------------------------------------------
+// Planejamento de execução (Etapa 5, §54): planos com fila ordenada, paralelismo e política de
+// redistribuição (§22, §23) e dependências entre entregas (§24). A projeção da execução é derivada na
+// leitura por funções puras (`planning-rules.ts`); nada calculado é persistido.
+// ---------------------------------------------------------------------------
+
+/// §22.2. Sequencial é o padrão (§22.5).
+enum ExecutionMode {
+  SEQUENTIAL
+  PARALLEL
+  HYBRID
+}
+
+/// §23.
+enum RedistributionPolicy {
+  NONE
+  SAME_CONTEXT
+  CROSS_CONTEXT
+}
+
+/// Rascunho não consome a capacidade do contexto; um plano ativo por pessoa e contexto (migration).
+enum ExecutionPlanStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+/// §24.3.
+enum DependencyType {
+  FINISH_TO_START
+  START_TO_START
+  FINISH_TO_FINISH
+  EXTERNAL
+  INFORMATIONAL
+}
+
+/// Situação registrada da dependência externa; a interna deriva do predecessor.
+enum DependencyStatus {
+  OPEN
+  RELEASED
+}
+
+/// Como uma pessoa consome a capacidade de um contexto no período (§22.3). O contexto (time, projeto)
+/// define quais alocações alimentam a fila: as que têm exatamente este time e projeto.
+model ExecutionPlan {
+  id                   String               @id @default(uuid()) @db.Uuid
+  workspaceId          String               @map("workspace_id") @db.Uuid
+  developerId          String               @map("developer_id") @db.Uuid
+  teamId               String?              @map("team_id") @db.Uuid
+  projectId            String?              @map("project_id") @db.Uuid
+  startDate            DateTime             @map("start_date") @db.Date
+  endDate              DateTime             @map("end_date") @db.Date
+  executionMode        ExecutionMode        @default(SEQUENTIAL) @map("execution_mode")
+  maxParallelItems     Int                  @default(1) @map("max_parallel_items")
+  redistributionPolicy RedistributionPolicy @default(SAME_CONTEXT) @map("redistribution_policy")
+  status               ExecutionPlanStatus  @default(ACTIVE)
+  notes                String?              @db.VarChar(1000)
+  createdAt            DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt            DateTime             @updatedAt @map("updated_at") @db.Timestamptz(3)
+  version              Int                  @default(1)
+
+  workspace Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  developer Developer           @relation(fields: [developerId], references: [id], onDelete: Restrict)
+  team      Team?               @relation(fields: [teamId], references: [id], onDelete: Restrict)
+  project   Project?            @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  items     ExecutionPlanItem[]
+
+  @@index([developerId, status])
+  @@index([teamId])
+  @@index([projectId])
+  @@map("execution_plans")
+}
+
+/// Item na fila do plano (§22.4). A situação de execução continua no item externo (sem estado
+/// duplicado); a do plano é derivada na projeção.
+model ExecutionPlanItem {
+  id                String    @id @default(uuid()) @db.Uuid
+  planId            String    @map("execution_plan_id") @db.Uuid
+  workItemId        String    @map("work_item_id") @db.Uuid
+  position          Int
+  /// Parcela da capacidade do contexto entre 0 e 1 (§35.7); vazia = divide o que sobra.
+  capacityShare     Decimal?  @map("capacity_share") @db.Decimal(5, 4)
+  earliestStartDate DateTime? @map("earliest_start_date") @db.Date
+  notes             String?   @db.VarChar(500)
+
+  plan     ExecutionPlan    @relation(fields: [planId], references: [id], onDelete: Cascade)
+  workItem ExternalWorkItem @relation(fields: [workItemId], references: [id], onDelete: Restrict)
+
+  @@unique([planId, workItemId])
+  @@unique([planId, position])
+  @@index([workItemId])
+  @@map("execution_plan_items")
+}
+
+/// Relação que condiciona o início ou a conclusão de uma entrega (§24.2). Sem ciclos (§35.7, CA-017).
+model WorkDependency {
+  id                  String           @id @default(uuid()) @db.Uuid
+  workspaceId         String           @map("workspace_id") @db.Uuid
+  /// `null` = dependência externa (`external_reference`).
+  predecessorId       String?          @map("predecessor_id") @db.Uuid
+  successorId         String           @map("successor_id") @db.Uuid
+  dependencyType      DependencyType   @map("dependency_type")
+  externalReference   String?          @map("external_reference") @db.VarChar(200)
+  expectedReleaseDate DateTime?        @map("expected_release_date") @db.Date
+  actualReleaseDate   DateTime?        @map("actual_release_date") @db.Date
+  status              DependencyStatus @default(OPEN)
+  notes               String?          @db.VarChar(1000)
+  createdAt           DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+  version             Int              @default(1)
+
+  workspace   Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  predecessor ExternalWorkItem? @relation("DependencyPredecessor", fields: [predecessorId], references: [id], onDelete: Restrict)
+  successor   ExternalWorkItem  @relation("DependencySuccessor", fields: [successorId], references: [id], onDelete: Restrict)
+
+  @@unique([predecessorId, successorId, dependencyType])
+  @@index([successorId])
+  @@index([predecessorId])
+  @@index([workspaceId, dependencyType])
+  @@map("work_dependencies")
 }

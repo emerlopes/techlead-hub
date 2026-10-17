@@ -17,7 +17,7 @@ import { Field, Input, Select } from "@/components/ui/input";
 import { apiMutation } from "@/lib/api/client";
 import { useApiForm } from "@/lib/api/use-api-form";
 import { hoursInput, hoursOrNull, optionalValue } from "@/lib/form-data";
-import { type CapacityOptions, fractionToPercentInput, OptionList, percentToFraction } from "./options";
+import { type CapacityOptions, fractionToPercentInput, OptionList, percentToFraction, withCurrent } from "./options";
 
 /**
  * Criar e editar alocação (§20). Percentual da capacidade efetiva ou horas com periodicidade explícita
@@ -160,9 +160,4 @@ export function AllocationForm({
       </div>
     </form>
   );
-}
-
-function withCurrent(options: CapacityOptions["teams"], current: { id: string; code: string; name: string } | null | undefined) {
-  if (!current || options.some((o) => o.id === current.id)) return options;
-  return [{ id: current.id, label: `${current.code} · ${current.name}` }, ...options];
 }
