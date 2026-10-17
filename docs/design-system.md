@@ -153,6 +153,13 @@ Fonte única para rótulo pt-BR, tom e ícone de cada enum da especificação. S
 | `availabilityExceptionType` | §19.3 | Férias · Folga · Feriado · Treinamento · Ausência · Suporte extraordinário · Outra indisponibilidade |
 | `capacityLevel` | §25.5 | Saudável (<85%) · Atenção (85–100%) · Sobrecarga (>100%) · Sem capacidade (CA = 0, indeterminado) |
 | `capacityIssueType` | §20.5, CA-011, RN-029 | Acima da capacidade · Mais de 100% · Sem jornada (indeterminado) · Fora do time · Contexto inativo |
+| `executionMode` | §22.2 | Sequencial · Paralelo · Híbrido |
+| `redistributionPolicy` | §23 | Sem redistribuição · Mesmo contexto · Entre contextos (`attention`: altera compromissos de outros times) |
+| `executionPlanStatus` | §22.3 | Rascunho · Ativo · Arquivado |
+| `planItemState` | §22, CA-018 | Concluído · Conclui no período · Em execução no fim · Após o período · Aguarda dependência · Bloqueado · Sem estimativa (indeterminado) · Indeterminado |
+| `planIssueType` | §22.5, §24 | Sem capacidade no contexto · Conflito de alocação · Sem estimativa · Bloqueado · Dependência sem previsão · Ordem contra dependência · Outro responsável · Não cabe no período |
+| `dependencyType` | §24.3 | Término → início · Início → início · Término → término · Externa · Informativa |
+| `dependencyState` | §24.4 | Liberada · Pendente · Sem previsão (indeterminado) · Só registro |
 
 A confiança de estimativas (§21.4) reaproveita `confidence` (Alta · Média · Baixa) via `ConfidenceMeter`.
 
@@ -170,7 +177,9 @@ Novos enums: adicionar ao arquivo com `satisfies StatusMap<string>`; marcar `ind
 | `CapacityBar` | U = D / CA (§25.5). Faixas: <85% `capacity` · 85–100% `attention` (limite `UTILIZATION_ATTENTION_PERCENT` de `@tlh/shared-contracts`) · >100% `danger` com excedente hachurado após o marcador de 100%. CA = 0 → “Sem capacidade”, sem percentual. |
 | `ContextLoadView` | Capacidade alocada × demanda de time, projeto ou sprint (`ContextLoad`). A barra usa só a demanda que vence no período; horas depois do período, sem compromisso e itens sem estimativa aparecem à parte (RN-039). Selo `capacityLevel`. |
 | `CapacityDays` | Capacidade dia a dia de uma pessoa: altura = jornada, preenchido `capacity` = efetiva, hachura = indisponível, tracejado = sem jornada, marcador `danger` = alocado acima do dia. Rola na horizontal dentro do cartão. |
-| `CapacityIssues` | Inconsistências de alocação (`capacityIssueType`) como selos; `withDescription` explica cada uma. Sem inconsistência, não renderiza nada. |
+| `IssueList` | Sinalizações de qualquer catálogo do `status.ts` (`catalog`) como selos; `withDescription` explica cada uma. Sem sinalização, não renderiza nada. |
+| `CapacityIssues` | `IssueList` com `capacityIssueType` (inconsistências de alocação). |
+| `ExecutionTimeline` | Fila de um plano dia a dia (§22): uma linha por item com barra proporcional às horas, no tom do `planItemState`; última linha = uso da capacidade do contexto; dias sem capacidade hachurados. Coluna do item fixa e rolagem horizontal dentro do cartão. |
 | `AllocationRow` | Alocação em linha: destino (time/projeto ou “Reserva geral” + descrição), valor (“50%”, “10 h por semana”), vigência e, opcionalmente, horas no período. Fora da vigência em `muted`. |
 | `AbsenceItem` | Ausência/feriado em linha: tipo, pessoa (ou “Todas as pessoas”), período, “dia inteiro” ou “N h/dia”, motivo genérico; cancelada com opacidade reduzida. |
 | `StaleIndicator` | Acompanhamento desatualizado após N dias (padrão 3) ou nunca verificado (§5.4, §14.5). |
@@ -190,8 +199,8 @@ Novos enums: adicionar ao arquivo com `satisfies StatusMap<string>`; marcar `ind
 | Componente | Notas |
 | --- | --- |
 | `Brand` | Marca + link para o início. `compact` oculta o nome no mobile (fica para leitores de tela). |
-| `AppNav` | Áreas principais (Início · Atividades · Entregas · Capacidade · Organização · Configurações); item ativo com `aria-current="page"`; rótulos viram `sr-only` no mobile. |
-| `SectionNav` | Sub-navegação de uma área (`lib/navigation.ts`: `deliverySection`, `capacitySection`, `organizationSection`), renderizada pelo layout do route group `(delivery)`/`(capacity)`/`(organization)`. Itens com `exact: true` (raiz da área, ex.: `/capacity`) só ficam ativos na própria rota. Abas sublinhadas, rolagem horizontal própria no mobile. Usa `usePathname`: dentro de `<Suspense>`. |
+| `AppNav` | Áreas principais (Início · Atividades · Entregas · Capacidade · Planejamento · Organização · Configurações); item ativo com `aria-current="page"`; rótulos viram `sr-only` no mobile. |
+| `SectionNav` | Sub-navegação de uma área (`lib/navigation.ts`: `deliverySection`, `capacitySection`, `planningSection`, `organizationSection`), renderizada pelo layout do route group `(delivery)`/`(capacity)`/`(planning)`/`(organization)`. Itens com `exact: true` (raiz da área, ex.: `/capacity`) só ficam ativos na própria rota. Abas sublinhadas, rolagem horizontal própria no mobile. Usa `usePathname`: dentro de `<Suspense>`. |
 | `PageHeader` | Título de página (`text-xl`), eyebrow opcional (texto ou link de volta), descrição e `actions` à direita (quebram abaixo no mobile). |
 | `ListSkeleton`, `DetailSkeleton` | Carregamento padrão de listagens e páginas de detalhe. |
 | `ApiUnavailable` | Estado de falha padrão quando a API não responde: `Alert tone="danger"` + `RetryButton`. |
@@ -218,6 +227,7 @@ Server Components leem a API com `loadApi(path, schema)` (`lib/api/server.ts`): 
 - **Iniciar sprint:** sprints planejadas mostram o cartão “Iniciar sprint” (âncora `#iniciar`, alvo do botão do cabeçalho) com nome pré-preenchido e objetivo obrigatórios; nas geradas pela release, a descrição avisa que o nome é provisório e liga à release.
 - **Exceções justificadas (§15.5):** marcar “pronta” com checklist incompleto exibe o campo de justificativa obrigatório; checklist completo só sugere (`Alert success` com ação), nunca aplica.
 - **Capacidade (§18–§21):** sem jornada a capacidade é desconhecida, nunca zero (`capacityIssueType.NO_SCHEDULE`, hachura); conflitos de alocação são sinalizados, não bloqueados (§20.5); período na URL (`?from&to`) com `PeriodFilter` (atalhos de 2/4/12 semanas, horizonte máximo §25.6). Indicadores de capacidade são de planejamento — nunca de desempenho (§10.4); evite rankings de pessoas.
+- **Planejamento de execução (§22–§24):** a fila é editada localmente e salva inteira (“Salvar fila”, com a versão lida), validada no navegador pelas mesmas regras da API (`planShapeIssues`, CA-014). A projeção é marcada como “não é previsão” até o motor da Etapa 6; itens sem estimativa, bloqueados ou com dependência sem previsão nunca recebem datas (indeterminado, CA-018). Redistribuição entre contextos mostra aviso explícito (§23.4).
 - **Percentuais em formulários:** o usuário digita 0–100 (“50” ou “50,5”); a API recebe a fração 0–1 (§35.7). Horas aceitam vírgula (`hoursOrNull`).
 - **Dashboard (§5):** KPIs no topo → foco principal + capacidade à esquerda → entregas críticas à direita. Ver seção “Composição” no showcase.
 
@@ -232,4 +242,4 @@ Server Components leem a API com `loadApi(path, schema)` (`lib/api/server.ts`): 
 ## 11. Pendências
 
 - Componentes com Radix (Dialog, Popover, DropdownMenu, Tooltip, Command ⌘K) — adicionar via `npx shadcn add …` quando os módulos precisarem; os tokens já são compatíveis.
-- Navegação definitiva (sidebar quando Planejamento entrar; hoje áreas + `SectionNav`) e gráficos (burndown, histórico de previsões) — a definir junto com os fluxos detalhados de §56.7.
+- Navegação definitiva (sidebar; hoje áreas + `SectionNav`, já com Planejamento) e gráficos (burndown, histórico de previsões) — a definir junto com os fluxos detalhados de §56.7.

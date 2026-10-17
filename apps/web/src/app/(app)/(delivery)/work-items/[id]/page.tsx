@@ -1,6 +1,7 @@
 import {
   daysSince,
   developerSchema,
+  executionPlanSchema,
   externalSourceSchema,
   journalEntrySchema,
   paginatedSchema,
@@ -8,6 +9,9 @@ import {
   sprintSchema,
   teamSchema,
   type WorkItemDetail,
+  type ExecutionPlan,
+  type WorkDependency,
+  workDependencySchema,
   workItemDetailSchema,
 } from "@tlh/shared-contracts";
 import { ExternalLink } from "lucide-react";
@@ -29,15 +33,19 @@ import { StatusBadge } from "@/components/domain/status-badge";
 import { Alert } from "@/components/ui/alert";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { JournalCard } from "@/features/journal/journal-card";
+import { DependencyForm } from "@/features/planning/dependency-form";
+import { DependencyList } from "@/features/planning/dependency-list";
 import { RiskListCard } from "@/features/risks/risk-list-card";
 import { EstimatePanel } from "@/features/work-items/estimate-panel";
 import { RefinementPanel } from "@/features/work-items/refinement-panel";
 import { TrackingHistory } from "@/features/work-items/tracking-history";
 import { WorkItemActions } from "@/features/work-items/work-item-actions";
 import { WorkItemForm } from "@/features/work-items/work-item-form";
+import { loadOpenWorkItems } from "@/lib/api/options";
 import { loadApi, requireMe, withQuery } from "@/lib/api/server";
 import {
   blockingLevel,
+  executionPlanStatus,
   executionStatus,
   refinementStatus,
   scopeType,
@@ -58,7 +66,7 @@ export default function WorkItemPage({ params }: PageProps<"/work-items/[id]">) 
 
 async function WorkItemView({ params }: Pick<PageProps<"/work-items/[id]">, "params">) {
   const { id } = await params;
-  const [item, me, sources, projects, teams, developers, sprints, journal] = await Promise.all([
+  const [item, me, sources, projects, teams, developers, sprints, journal, dependencies, plans, openItems] = await Promise.all([
     loadApi(`/work-items/${id}`, workItemDetailSchema),
     requireMe(),
     loadApi("/external-sources", z.array(externalSourceSchema)),
@@ -67,9 +75,12 @@ async function WorkItemView({ params }: Pick<PageProps<"/work-items/[id]">, "par
     loadApi("/developers", z.array(developerSchema)),
     loadApi("/sprints", z.array(sprintSchema)),
     loadApi(withQuery("/journal", { workItemId: id, pageSize: "20" }), paginatedSchema(journalEntrySchema)),
+    loadApi(withQuery("/work-dependencies", { workItemId: id, scope: "all" }), z.array(workDependencySchema)),
+    loadApi(withQuery("/execution-plans", { workItemId: id, scope: "current" }), z.array(executionPlanSchema)),
+    loadOpenWorkItems(),
   ]);
   if (!item.ok && item.reason === "not_found") notFound();
-  if (!item.ok || !me.ok || !sources.ok || !projects.ok || !teams.ok || !developers.ok || !sprints.ok || !journal.ok) {
+  if (!item.ok || !me.ok || !sources.ok || !projects.ok || !teams.ok || !developers.ok || !sprints.ok || !journal.ok || !dependencies.ok || !plans.ok || !openItems.ok) {
     return <ApiUnavailable />;
   }
   const w = item.data;
@@ -193,6 +204,13 @@ async function WorkItemView({ params }: Pick<PageProps<"/work-items/[id]">, "par
         <div className="flex min-w-0 flex-col gap-4">
           <Summary item={w} timeZone={timeZone} />
           <PlanningCard item={w} />
+          <ExecutionCard
+            item={w}
+            closed={closed}
+            dependencies={dependencies.data}
+            plans={plans.data}
+            candidates={openItems.data.items.map((o) => ({ id: o.id, externalKey: o.externalKey, title: o.title }))}
+          />
           <RiskListCard risks={w.openRisks} newHref={`/risks/new?workItemId=${w.id}`} empty="Nenhum risco ou impedimento aberto." />
           <Card>
             <CardHeader>
@@ -298,6 +316,59 @@ function PlanningCard({ item }: { item: WorkItemDetail }) {
             </ul>
           )}
         </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/** Planos que executam o item e o que condiciona o início dele (§22, §24). */
+function ExecutionCard({
+  item,
+  closed,
+  dependencies,
+  plans,
+  candidates,
+}: {
+  item: WorkItemDetail;
+  closed: boolean;
+  dependencies: WorkDependency[];
+  plans: ExecutionPlan[];
+  candidates: { id: string; externalKey: string; title: string }[];
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Execução e dependências</CardTitle>
+        <CardDescription>Ciclos são rejeitados (CA-017); sem previsão, o item não recebe data (CA-018).</CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4 text-sm">
+        <div className="flex flex-col gap-1.5">
+          <span className="text-xs text-muted-foreground">Planos de execução</span>
+          {plans.length === 0 ? (
+            <span className="text-xs text-muted-foreground">Em nenhum plano.</span>
+          ) : (
+            <ul className="flex flex-col gap-1">
+              {plans.map((p) => (
+                <li key={p.id} className="flex flex-wrap items-center gap-1.5">
+                  <Link href={`/plans/${p.id}`} className="font-medium hover:underline">
+                    {p.developer.name}
+                  </Link>
+                  {p.project && <ContextChip code={p.project.code} name={p.project.name} />}
+                  <StatusBadge meta={executionPlanStatus[p.status]} size="sm" variant="dot" />
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        {dependencies.length > 0 && <DependencyList dependencies={dependencies} />}
+        {!closed && (
+          <details className="group rounded-md border border-border p-3">
+            <summary className="pressable cursor-pointer text-xs font-medium">Registrar dependência deste item</summary>
+            <div className="mt-3">
+              <DependencyForm items={candidates.filter((c) => c.id !== item.id)} successorId={item.id} />
+            </div>
+          </details>
+        )}
       </CardContent>
     </Card>
   );

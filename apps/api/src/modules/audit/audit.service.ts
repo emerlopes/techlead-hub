@@ -61,7 +61,14 @@ export type AuditAction =
   | "availability_exception.cancelled"
   | "capacity_allocation.created"
   | "capacity_allocation.updated"
-  | "capacity_allocation.deleted";
+  | "capacity_allocation.deleted"
+  | "execution_plan.created"
+  | "execution_plan.updated"
+  | "execution_plan.queue_updated"
+  | "work_dependency.created"
+  | "work_dependency.updated"
+  | "work_dependency.released"
+  | "work_dependency.deleted";
 
 export type AuditInput = {
   action: AuditAction;
@@ -86,7 +93,9 @@ export type AuditInput = {
     | "journal_entry"
     | "work_schedule"
     | "availability_exception"
-    | "capacity_allocation";
+    | "capacity_allocation"
+    | "execution_plan"
+    | "work_dependency";
   entityId?: string;
   workspaceId?: string;
   actorUserId?: string;

@@ -1,5 +1,19 @@
 import {
   Archive,
+  ArrowDownUp,
+  ArrowRightLeft,
+  CirclePlay,
+  Columns2,
+  FilePen,
+  Globe,
+  Info,
+  Layers,
+  ListOrdered,
+  Route,
+  Shuffle,
+  Unplug,
+  UserCog,
+  Workflow,
   Ban,
   BookOpen,
   Bug,
@@ -30,6 +44,7 @@ import {
   Gauge,
   FileSearch,
   Flame,
+  Flag,
   FlaskConical,
   Gavel,
   GitBranch,
@@ -473,3 +488,129 @@ export const capacityIssueType = {
   },
 } satisfies StatusMap<string>;
 export type CapacityIssueType = keyof typeof capacityIssueType;
+
+/* -------------------------------------------------------------------------- */
+/* Planejamento de execução (§22–§24)                                         */
+/* -------------------------------------------------------------------------- */
+
+/* Modos de execução (§22.2) */
+export const executionMode = {
+  SEQUENTIAL: { label: "Sequencial", tone: "capacity", icon: ListOrdered, description: "Um item por vez, na ordem da fila (padrão)." },
+  PARALLEL: { label: "Paralelo", tone: "capacity", icon: Columns2, description: "Todos os itens ao mesmo tempo, cada um com a sua parcela." },
+  HYBRID: { label: "Híbrido", tone: "capacity", icon: Layers, description: "Fila ordenada com até N itens simultâneos." },
+} satisfies StatusMap<string>;
+export type ExecutionMode = keyof typeof executionMode;
+
+/* Políticas de redistribuição (§23) */
+export const redistributionPolicy = {
+  NONE: { label: "Sem redistribuição", tone: "neutral", icon: CircleSlash, description: "Capacidade não usada fica livre." },
+  SAME_CONTEXT: {
+    label: "Mesmo contexto",
+    tone: "capacity",
+    icon: Shuffle,
+    description: "A sobra vai para outros itens elegíveis da fila (recomendada, §23.4).",
+  },
+  CROSS_CONTEXT: {
+    label: "Entre contextos",
+    tone: "attention",
+    icon: ArrowRightLeft,
+    description: "A sobra também pode ir para outros planos da pessoa que autorizaram — altera compromissos de outros times.",
+  },
+} satisfies StatusMap<string>;
+export type RedistributionPolicy = keyof typeof redistributionPolicy;
+
+/* Situação do plano */
+export const executionPlanStatus = {
+  DRAFT: { label: "Rascunho", tone: "neutral", icon: FilePen, description: "Projetado isolado; não consome a capacidade do contexto." },
+  ACTIVE: { label: "Ativo", tone: "info", icon: CirclePlay },
+  ARCHIVED: { label: "Arquivado", tone: "neutral", icon: Archive },
+} satisfies StatusMap<string>;
+export type ExecutionPlanStatus = keyof typeof executionPlanStatus;
+
+/* Item na projeção do plano */
+export const planItemState = {
+  DONE: { label: "Concluído", tone: "success", icon: CircleCheck },
+  COMPLETES: { label: "Conclui no período", tone: "capacity", icon: Flag },
+  IN_PROGRESS: { label: "Em execução no fim", tone: "attention", icon: LoaderCircle, description: "Começa, mas não termina no período." },
+  NOT_STARTED: { label: "Após o período", tone: "neutral", icon: Hourglass, description: "Aguarda vaga na fila além do período." },
+  WAITING_DEPENDENCY: { label: "Aguarda dependência", tone: "blocked", icon: Link2, description: "Só começa depois de liberada (§24)." },
+  BLOCKED: { label: "Bloqueado", tone: "blocked", icon: Lock, description: "Bloqueio total não consome capacidade (§22.5)." },
+  NO_ESTIMATE: {
+    label: "Sem estimativa",
+    tone: "neutral",
+    icon: CircleHelp,
+    indeterminate: true,
+    description: "Sem esforço restante não há como projetar (§3.4).",
+  },
+  INDETERMINATE: {
+    label: "Indeterminado",
+    tone: "neutral",
+    icon: CircleDashed,
+    indeterminate: true,
+    description: "Atrás de um item sem estimativa na fila.",
+  },
+} satisfies StatusMap<string>;
+export type PlanItemState = keyof typeof planItemState;
+
+/* Sinalizações do plano */
+export const planIssueType = {
+  NO_CAPACITY: {
+    label: "Sem capacidade no contexto",
+    tone: "neutral",
+    icon: CircleHelp,
+    indeterminate: true,
+    description: "Nenhuma alocação com este time e projeto no período: crie uma alocação para o contexto.",
+  },
+  CAPACITY_CONFLICT: {
+    label: "Conflito de alocação",
+    tone: "danger",
+    icon: TrendingUp,
+    description: "A pessoa tem alocações acima da capacidade efetiva no período (CA-011).",
+  },
+  NO_ESTIMATE: { label: "Sem estimativa", tone: "neutral", icon: CircleHelp, description: "Itens sem esforço restante tornam a projeção incompleta (RN-039)." },
+  BLOCKED: { label: "Bloqueado", tone: "blocked", icon: Lock, description: "Itens com bloqueio total não consomem capacidade." },
+  DEPENDENCY_UNKNOWN: {
+    label: "Dependência sem previsão",
+    tone: "blocked",
+    icon: Unplug,
+    description: "Dependência externa sem data ou predecessor fora de planos ativos: sem data arbitrária (CA-018).",
+  },
+  DEPENDENCY_ORDER: {
+    label: "Ordem contra dependência",
+    tone: "attention",
+    icon: ArrowDownUp,
+    description: "Item antes do predecessor na fila: ele espera, e quem vem depois avança.",
+  },
+  ASSIGNEE_MISMATCH: {
+    label: "Outro responsável",
+    tone: "attention",
+    icon: UserCog,
+    description: "O acompanhamento indica outra pessoa como responsável pelo item.",
+  },
+  UNFINISHED_IN_PERIOD: {
+    label: "Não cabe no período",
+    tone: "warning",
+    icon: Hourglass,
+    description: "Itens que não terminam até o fim do plano.",
+  },
+} satisfies StatusMap<string>;
+export type PlanIssueType = keyof typeof planIssueType;
+
+/* Tipos de dependência (§24.3) */
+export const dependencyType = {
+  FINISH_TO_START: { label: "Término → início", tone: "delivery", icon: Route, description: "O sucessor só começa quando o predecessor termina." },
+  START_TO_START: { label: "Início → início", tone: "neutral", icon: Workflow, description: "Registrada; ainda não afeta o cálculo (§24.4)." },
+  FINISH_TO_FINISH: { label: "Término → término", tone: "neutral", icon: Workflow, description: "Registrada; ainda não afeta o cálculo (§24.4)." },
+  EXTERNAL: { label: "Externa", tone: "delivery", icon: Globe, description: "Depende de algo fora do hub, com data de liberação quando conhecida." },
+  INFORMATIONAL: { label: "Informativa", tone: "neutral", icon: Info, description: "Só contexto; não afeta o cálculo." },
+} satisfies StatusMap<string>;
+export type DependencyType = keyof typeof dependencyType;
+
+/* Situação da dependência no cálculo */
+export const dependencyState = {
+  RELEASED: { label: "Liberada", tone: "success", icon: LockOpen },
+  PENDING: { label: "Pendente", tone: "attention", icon: Hourglass },
+  UNKNOWN: { label: "Sem previsão", tone: "blocked", icon: Unplug, indeterminate: true, description: "Sem data de liberação conhecida (CA-018)." },
+  NOT_CALCULATED: { label: "Só registro", tone: "neutral", icon: Info, description: "Tipo ainda sem efeito no cálculo (§24.4)." },
+} satisfies StatusMap<string>;
+export type DependencyState = keyof typeof dependencyState;
