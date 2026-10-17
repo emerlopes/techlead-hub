@@ -128,4 +128,11 @@ export class TeamsService {
       });
     return this.get(auth, id);
   }
+
+  async remove(auth: AuthContext, id: string): Promise<void> {
+    await this.audit.deleteEntity(
+      { entityType: "team", entityId: id, workspaceId: auth.workspaceId, actorUserId: auth.userId, label: ENTITY },
+      (tx) => tx.team.deleteMany({ where: { id, workspaceId: auth.workspaceId } }),
+    );
+  }
 }

@@ -43,6 +43,13 @@ export class ReleasesController {
     return this.releases.get(auth, id);
   }
 
+  /** Exclusão definitiva; vínculos e históricos dependentes saem em cascata. */
+  @Delete(":id")
+  @HttpCode(204)
+  remove(@CurrentAuth() auth: AuthContext, @Param("id", UuidParamPipe) id: string): Promise<void> {
+    return this.releases.remove(auth, id);
+  }
+
   @Patch(":id")
   update(
     @CurrentAuth() auth: AuthContext,

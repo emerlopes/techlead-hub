@@ -22,6 +22,7 @@ import { Suspense } from "react";
 import { z } from "zod";
 import { ApiUnavailable } from "@/components/app/api-unavailable";
 import { DetailSkeleton } from "@/components/app/page-skeletons";
+import { DeleteButton } from "@/components/app/delete-button";
 import { PageHeader } from "@/components/app/page-header";
 import { ConfidenceMeter } from "@/components/domain/confidence-meter";
 import { DateDelta } from "@/components/domain/date-delta";
@@ -119,7 +120,12 @@ async function WorkItemView({ params }: Pick<PageProps<"/work-items/[id]">, "par
             )}
           </span>
         }
-        actions={<WorkItemActions item={w} />}
+        actions={
+          <>
+            <WorkItemActions item={w} />
+            <DeleteButton path={`/work-items/${w.id}`} redirectTo="/work-items" question="Excluir o item definitivamente? Acompanhamento, estimativas, refinamento e dependências saem junto." />
+          </>
+        }
       />
 
       {impediments.length > 0 && (

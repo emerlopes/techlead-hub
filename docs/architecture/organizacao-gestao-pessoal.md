@@ -23,8 +23,13 @@ Constraints além do Prisma (mesma migration):
 | Horas não negativas (§35.4) | `numeric(7,2)` + `CHECK (>= 0)` |
 
 Prazo da atividade é `date` (data de negócio, §35.3); "hoje" é calculado no fuso do workspace.
-Nada é apagado fisicamente (§35.9): times/pessoas são desativados, projetos arquivados e
-associações encerradas (`ended_at`).
+Arquivar não apaga (§35.9): times/pessoas são desativados, projetos arquivados e
+associações encerradas (`ended_at`). A exclusão definitiva é a exceção explícita (§35.9): `DELETE /<recurso>/:id` em times,
+projetos, pessoas, atividades, itens, sprints, releases, riscos, diário e planos de execução, com
+confirmação na interface e evento `<entidade>.deleted` na auditoria. As FKs dependentes são
+`ON DELETE CASCADE` (vínculos, filhos e históricos) ou `SET NULL` (responsável/time do
+acompanhamento, release da sprint, sprint pretendida no refinamento, contexto do plano) —
+migration `delete_cascades`.
 
 ## Contratos implementados (`/api/v1`, §36)
 

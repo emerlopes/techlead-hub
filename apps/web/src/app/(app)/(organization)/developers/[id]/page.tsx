@@ -7,6 +7,7 @@ import { Suspense } from "react";
 import { z } from "zod";
 import { ApiUnavailable } from "@/components/app/api-unavailable";
 import { DetailSkeleton } from "@/components/app/page-skeletons";
+import { DeleteButton } from "@/components/app/delete-button";
 import { PageHeader } from "@/components/app/page-header";
 import { ContextChip, DomainTag } from "@/components/domain/domain-tag";
 import { StatusBadge } from "@/components/domain/status-badge";
@@ -57,7 +58,8 @@ async function DeveloperView({ params }: Pick<PageProps<"/developers/[id]">, "pa
         }
         description={d.roleDescription ?? undefined}
         actions={
-          <StatusActions
+          <>
+            <StatusActions
             path={`/developers/${d.id}`}
             version={d.version}
             actions={
@@ -66,6 +68,8 @@ async function DeveloperView({ params }: Pick<PageProps<"/developers/[id]">, "pa
                 : [{ status: "ACTIVE", label: "Reativar", icon: "userCheck" }]
             }
           />
+            <DeleteButton path={`/developers/${d.id}`} redirectTo="/developers" question="Excluir a pessoa definitivamente? Jornadas, ausências, alocações e planos dela também serão removidos." />
+          </>
         }
       />
 

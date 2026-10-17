@@ -205,6 +205,7 @@ Novos enums: adicionar ao arquivo com `satisfies StatusMap<string>`; marcar `ind
 | `ListSkeleton`, `DetailSkeleton` | Carregamento padrão de listagens e páginas de detalhe. |
 | `ApiUnavailable` | Estado de falha padrão quando a API não responde: `Alert tone="danger"` + `RetryButton`. |
 | `FormError` | Erro geral de formulário a partir de `ApiError`. Bloqueio (`TOO_MANY_ATTEMPTS`) e conflito de versão (`CONFLICT`) usam `warning`; demais, `danger`. |
+| `DeleteButton` | Exclusão definitiva (§35.9): `ConfirmButton` “Excluir” com pergunta que diz o que sai junto, `DELETE` no recurso e `redirectTo` para a listagem (ou `onDeleted`, para edição no lugar). Exibe o `ApiError` com `FormError`. |
 | `RetryButton` | `router.refresh()` com estado de carregamento; `label` customizável (“Recarregar” em conflitos). |
 | `PasswordInput` (`features/identity`) | `Input` com botão de mostrar/ocultar (`aria-pressed`). |
 
@@ -224,6 +225,7 @@ Server Components leem a API com `loadApi(path, schema)` (`lib/api/server.ts`): 
 - **Listas de entregas:** `WorkItemRow` — item (chave externa em mono + link externo) · saúde (`HealthIndicator`) · execução · responsável · compromisso · verificação (`StaleIndicator`). Confiança entra com o motor de previsão.
 - **Acompanhamento desatualizado (§14.5):** `Alert tone="warning"` no detalhe + `StaleIndicator` nas linhas; “Registrar verificação” registra sem alterar dados.
 - **Escopo de sprint/release:** retirar do escopo usa `ConfirmButton` e mantém o item no histórico (“Saíram durante a sprint”, “retirados do escopo”).
+- **Arquivar × excluir:** arquivar/desativar preserva o cadastro (continua nas consultas e no histórico); “Excluir” (`DeleteButton`, ao lado das ações de situação no `PageHeader`) remove em definitivo, junto com vínculos e filhos (itens e releases do projeto, sprints do time, alocações e planos da pessoa…). O evento fica na auditoria.
 - **Iniciar sprint:** sprints planejadas mostram o cartão “Iniciar sprint” (âncora `#iniciar`, alvo do botão do cabeçalho) com nome pré-preenchido e objetivo obrigatórios; nas geradas pela release, a descrição avisa que o nome é provisório e liga à release.
 - **Exceções justificadas (§15.5):** marcar “pronta” com checklist incompleto exibe o campo de justificativa obrigatório; checklist completo só sugere (`Alert success` com ação), nunca aplica.
 - **Capacidade (§18–§21):** sem jornada a capacidade é desconhecida, nunca zero (`capacityIssueType.NO_SCHEDULE`, hachura); conflitos de alocação são sinalizados, não bloqueados (§20.5); período na URL (`?from&to`) com `PeriodFilter` (atalhos de 2/4/12 semanas, horizonte máximo §25.6). Indicadores de capacidade são de planejamento — nunca de desempenho (§10.4); evite rankings de pessoas.

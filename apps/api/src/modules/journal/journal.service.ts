@@ -197,4 +197,11 @@ export class JournalService {
       });
     }
   }
+
+  async remove(auth: AuthContext, id: string): Promise<void> {
+    await this.audit.deleteEntity(
+      { entityType: "journal_entry", entityId: id, workspaceId: auth.workspaceId, actorUserId: auth.userId, label: ENTITY },
+      (tx) => tx.journalEntry.deleteMany({ where: { id, workspaceId: auth.workspaceId } }),
+    );
+  }
 }

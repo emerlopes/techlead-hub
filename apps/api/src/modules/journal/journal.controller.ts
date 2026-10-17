@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Query } from "@nestjs/common";
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query } from "@nestjs/common";
 import {
   createJournalEntrySchema,
   type JournalEntry,
@@ -36,6 +36,13 @@ export class JournalController {
   @Get(":id")
   get(@CurrentAuth() auth: AuthContext, @Param("id", UuidParamPipe) id: string): Promise<JournalEntry> {
     return this.journal.get(auth, id);
+  }
+
+  /** Exclusão definitiva; vínculos e históricos dependentes saem em cascata. */
+  @Delete(":id")
+  @HttpCode(204)
+  remove(@CurrentAuth() auth: AuthContext, @Param("id", UuidParamPipe) id: string): Promise<void> {
+    return this.journal.remove(auth, id);
   }
 
   @Patch(":id")

@@ -9,6 +9,7 @@ import {
 import { Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { DeleteButton } from "@/components/app/delete-button";
 import { FormError } from "@/components/app/form-error";
 import { RetryButton } from "@/components/app/retry-button";
 import { Button } from "@/components/ui/button";
@@ -118,7 +119,12 @@ export function JournalForm({
           ))}
         </div>
       </details>
-      <div className="flex justify-end gap-2">
+      <div className="flex flex-wrap justify-end gap-2">
+        {entry && (
+          <div className="mr-auto">
+            <DeleteButton path={`/journal/${entry.id}`} question="Excluir o registro definitivamente?" onDeleted={onDone} />
+          </div>
+        )}
         {onDone && (
           <Button variant="ghost" onClick={onDone}>
             Voltar

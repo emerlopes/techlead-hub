@@ -432,4 +432,11 @@ export class SprintsService {
     if (!sprint) throw notFound(ENTITY);
     return sprint;
   }
+
+  async remove(auth: AuthContext, id: string): Promise<void> {
+    await this.audit.deleteEntity(
+      { entityType: "sprint", entityId: id, workspaceId: auth.workspaceId, actorUserId: auth.userId, label: ENTITY },
+      (tx) => tx.sprint.deleteMany({ where: { id, workspaceId: auth.workspaceId } }),
+    );
+  }
 }

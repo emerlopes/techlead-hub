@@ -6,6 +6,7 @@ import { Suspense } from "react";
 import { z } from "zod";
 import { ApiUnavailable } from "@/components/app/api-unavailable";
 import { DetailSkeleton } from "@/components/app/page-skeletons";
+import { DeleteButton } from "@/components/app/delete-button";
 import { PageHeader } from "@/components/app/page-header";
 import { DomainTag } from "@/components/domain/domain-tag";
 import { StatusBadge } from "@/components/domain/status-badge";
@@ -59,7 +60,12 @@ async function TaskView({ params }: Pick<PageProps<"/tasks/[id]">, "params">) {
             {t.dueState && <StatusBadge meta={taskDueState[t.dueState]} size="sm" />}
           </span>
         }
-        actions={<TaskStatusActions task={t} />}
+        actions={
+          <>
+            <TaskStatusActions task={t} />
+            <DeleteButton path={`/tasks/${t.id}`} redirectTo="/tasks" question="Excluir a atividade definitivamente?" />
+          </>
+        }
       />
 
       {t.status === "BLOCKED" && (

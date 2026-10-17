@@ -221,4 +221,11 @@ export class RisksService {
       });
     }
   }
+
+  async remove(auth: AuthContext, id: string): Promise<void> {
+    await this.audit.deleteEntity(
+      { entityType: "risk", entityId: id, workspaceId: auth.workspaceId, actorUserId: auth.userId, label: ENTITY },
+      (tx) => tx.risk.deleteMany({ where: { id, workspaceId: auth.workspaceId } }),
+    );
+  }
 }

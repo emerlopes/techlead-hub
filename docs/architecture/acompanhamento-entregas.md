@@ -33,9 +33,10 @@ Constraints além do Prisma (mesma migration):
 | Vínculos com integridade referencial | `risk_links` e `journal_links` com uma FK por tipo de contexto e `CHECK (num_nonnulls(...) = 1)` |
 | Diário sem registro duplicado (§17.4) | índice único `(workspace_id, category, occurred_on, md5(description))` |
 
-Nada é apagado fisicamente (§35.9): participações em sprint e release registram saída
+Alterações do dia a dia não apagam (§35.9): participações em sprint e release registram saída
 (`exited_at`/`removed_at`), riscos resolvidos continuam na tabela (RN-008) e o diário só é editado.
-As exceções explícitas e auditadas são itens do checklist de prontidão e marcos de release.
+As exceções explícitas e auditadas são itens do checklist de prontidão, marcos de release e a
+exclusão definitiva da entidade inteira (ver `organizacao-gestao-pessoal.md`).
 
 ## Regras aplicadas
 

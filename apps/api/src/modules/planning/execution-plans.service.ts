@@ -302,6 +302,13 @@ export class ExecutionPlansService {
       );
     }
   }
+
+  async remove(auth: AuthContext, id: string): Promise<void> {
+    await this.audit.deleteEntity(
+      { entityType: "execution_plan", entityId: id, workspaceId: auth.workspaceId, actorUserId: auth.userId, label: ENTITY },
+      (tx) => tx.executionPlan.deleteMany({ where: { id, workspaceId: auth.workspaceId } }),
+    );
+  }
 }
 
 /** No sequencial as parcelas não se aplicam: o item da vez recebe toda a capacidade (§22.2). */

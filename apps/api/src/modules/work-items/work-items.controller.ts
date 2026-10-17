@@ -53,6 +53,13 @@ export class WorkItemsController {
     return this.workItems.get(auth, id);
   }
 
+  /** Exclusão definitiva; vínculos e históricos dependentes saem em cascata. */
+  @Delete(":id")
+  @HttpCode(204)
+  remove(@CurrentAuth() auth: AuthContext, @Param("id", UuidParamPipe) id: string): Promise<void> {
+    return this.workItems.remove(auth, id);
+  }
+
   @Patch(":id")
   update(
     @CurrentAuth() auth: AuthContext,
