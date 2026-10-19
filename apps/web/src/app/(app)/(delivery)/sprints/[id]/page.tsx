@@ -1,5 +1,5 @@
 import { journalEntrySchema, paginatedSchema, riskSchema, sprintDetailSchema, teamSchema } from "@tlh/shared-contracts";
-import { CircleCheck, GitBranch, ListPlus, Undo2 } from "lucide-react";
+import { CircleCheck, FileText, GitBranch, ListPlus, Undo2 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -16,6 +16,7 @@ import { Kpi } from "@/components/domain/kpi";
 import { StatusBadge } from "@/components/domain/status-badge";
 import { WorkItemRow } from "@/components/domain/work-item-row";
 import { Alert } from "@/components/ui/alert";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { JournalCard } from "@/features/journal/journal-card";
 import { RiskListCard } from "@/features/risks/risk-list-card";
@@ -27,6 +28,7 @@ import { loadOpenWorkItems } from "@/lib/api/options";
 import { loadApi, requireMe, withQuery } from "@/lib/api/server";
 import { scopeType, sprintExitReason, sprintStatus } from "@/lib/design-system/status";
 import { formatBusinessDate } from "@/lib/format";
+import { atRequestTime } from "@/lib/today.server";
 
 export const metadata: Metadata = { title: "Sprint · Tech Lead Hub" };
 
@@ -39,6 +41,7 @@ export default function SprintPage({ params }: PageProps<"/sprints/[id]">) {
 }
 
 async function SprintView({ params }: Pick<PageProps<"/sprints/[id]">, "params">) {
+  await atRequestTime();
   const { id } = await params;
   const [sprint, me, teams, candidates, risks, journal] = await Promise.all([
     loadApi(`/sprints/${id}`, sprintDetailSchema),
@@ -74,6 +77,10 @@ async function SprintView({ params }: Pick<PageProps<"/sprints/[id]">, "params">
         }
         actions={
           <>
+            <Link href={`/reports/sprints/${s.id}`} className={buttonVariants({ variant: "outline" })}>
+              <FileText aria-hidden />
+              Relatório
+            </Link>
             <SprintActions sprint={s} />
             <DeleteButton path={`/sprints/${s.id}`} redirectTo="/sprints" question="Excluir a sprint definitivamente? Os itens voltam a ficar fora de sprint." />
           </>

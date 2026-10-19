@@ -1,5 +1,10 @@
+import { draftTypeLabels } from "@tlh/shared-contracts";
 import {
   Archive,
+  ArrowLeftFromLine,
+  ArrowRightToLine,
+  MessagesSquare,
+  Presentation,
   ArrowDownUp,
   ArrowRightLeft,
   CirclePlay,
@@ -614,3 +619,42 @@ export const dependencyState = {
   NOT_CALCULATED: { label: "Só registro", tone: "neutral", icon: Info, description: "Tipo ainda sem efeito no cálculo (§24.4)." },
 } satisfies StatusMap<string>;
 export type DependencyState = keyof typeof dependencyState;
+
+/* -------------------------------------------------------------------------- */
+/* Relatórios (§31)                                                           */
+/* -------------------------------------------------------------------------- */
+
+/* Alterações de escopo durante a sprint (§11.5) */
+export const scopeChangeKind = {
+  ADDED: { label: "Adicionado", tone: "attention", icon: ChevronUp },
+  MOVED_IN: { label: "Veio de outra sprint", tone: "info", icon: ArrowRightToLine },
+  REMOVED: { label: "Retirado", tone: "neutral", icon: Undo2 },
+  MOVED_OUT: { label: "Foi para outra sprint", tone: "info", icon: ArrowLeftFromLine },
+} satisfies StatusMap<string>;
+export type ScopeChangeKind = keyof typeof scopeChangeKind;
+
+/* Rascunhos gerados a partir da sprint (§31.4, §31.5) */
+export const reportDraftType = {
+  SPRINT_DEMO: { label: draftTypeLabels.SPRINT_DEMO, tone: "delivery", icon: Presentation },
+  SPRINT_RETROSPECTIVE: { label: draftTypeLabels.SPRINT_RETROSPECTIVE, tone: "delivery", icon: MessagesSquare },
+} satisfies StatusMap<string>;
+export type ReportDraftType = keyof typeof reportDraftType;
+
+/* Seção de rascunho sem conteúdo: nada registrado × ainda não gerado pelo sistema (§31.5) */
+export const draftSectionState = {
+  NO_DATA: {
+    label: "Nada registrado",
+    tone: "neutral",
+    icon: CircleDashed,
+    indeterminate: true,
+    description: "Sem registros no período: a seção fica vazia em vez de inventar fatos (§31.5).",
+  },
+  NOT_GENERATED: {
+    label: "Não gerado",
+    tone: "neutral",
+    icon: CircleSlash,
+    indeterminate: true,
+    description: "O sistema ainda não sugere ações: preencha durante a reunião (§3.5).",
+  },
+} satisfies StatusMap<string>;
+export type DraftSectionState = keyof typeof draftSectionState;

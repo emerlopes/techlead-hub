@@ -11,6 +11,8 @@ export * from "./organization";
 export * from "./planning";
 export * from "./planning-rules";
 export * from "./releases";
+export * from "./report-rules";
+export * from "./reports";
 export * from "./risks";
 export * from "./sprint-calendar";
 export * from "./sprints";

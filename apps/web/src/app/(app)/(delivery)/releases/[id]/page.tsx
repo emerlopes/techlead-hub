@@ -1,4 +1,5 @@
 import { journalEntrySchema, paginatedSchema, projectSchema, releaseDetailSchema, riskSchema } from "@tlh/shared-contracts";
+import { FileText } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -14,6 +15,7 @@ import { HistoryList } from "@/components/domain/history-list";
 import { StatusBadge } from "@/components/domain/status-badge";
 import { WorkItemRow } from "@/components/domain/work-item-row";
 import { Alert } from "@/components/ui/alert";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { JournalCard } from "@/features/journal/journal-card";
@@ -28,6 +30,7 @@ import { loadApi, requireMe, withQuery } from "@/lib/api/server";
 import { healthStatus, releaseRequirement, releaseStatus, sprintStatus } from "@/lib/design-system/status";
 import { formatBusinessDate, formatDateTime } from "@/lib/format";
 import { flatParams } from "@/lib/search-params";
+import { atRequestTime } from "@/lib/today.server";
 
 export const metadata: Metadata = { title: "Release · Tech Lead Hub" };
 
@@ -40,6 +43,7 @@ export default function ReleasePage({ params, searchParams }: PageProps<"/releas
 }
 
 async function ReleaseView({ params, searchParams }: PageProps<"/releases/[id]">) {
+  await atRequestTime();
   const { id } = await params;
   // Resultado da geração de sprints, repassado pelo cadastro.
   const query = flatParams(await searchParams);
@@ -76,6 +80,10 @@ async function ReleaseView({ params, searchParams }: PageProps<"/releases/[id]">
         description={r.description ?? undefined}
         actions={
           <>
+            <Link href={`/reports/releases/${r.id}`} className={buttonVariants({ variant: "outline" })}>
+              <FileText aria-hidden />
+              Relatório
+            </Link>
             <ReleaseActions release={r} />
             <DeleteButton path={`/releases/${r.id}`} redirectTo="/releases" question="Excluir a release definitivamente? Marcos e escopo saem junto; as sprints ficam sem release." />
           </>

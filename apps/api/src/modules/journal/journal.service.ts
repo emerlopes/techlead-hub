@@ -18,6 +18,8 @@ import type { AuthContext } from "../identity/auth-context";
 import { refSelect } from "../work-items/work-item.mapper";
 
 const ENTITY = "Registro";
+/** Limite de segurança dos acontecimentos lidos por relatório; uma sprint ou release fica muito abaixo dele. */
+export const REPORT_JOURNAL_LIMIT = 500;
 
 const entryInclude = {
   links: {
@@ -118,6 +120,31 @@ export class JournalService {
       }),
     ]);
     return { items: rows.map(toEntryDto), total, page: query.page, pageSize: query.pageSize };
+  }
+
+  /**
+   * Acontecimentos para relatórios (§31): ligados diretamente à sprint/release ou a um dos itens, estes
+   * só dentro do período quando informado (o item pode ter histórico de outras sprints).
+   */
+  async listForContexts(
+    auth: AuthContext,
+    contexts: { sprintId?: string; releaseId?: string; workItemIds: string[]; from?: string; to?: string },
+  ): Promise<JournalEntry[]> {
+    const or: Prisma.JournalEntryWhereInput[] = [
+      {
+        links: { some: { workItemId: { in: contexts.workItemIds } } },
+        occurredOn: { gte: fromIsoDate(contexts.from) ?? undefined, lte: fromIsoDate(contexts.to) ?? undefined },
+      },
+    ];
+    if (contexts.sprintId) or.push({ links: { some: { sprintId: contexts.sprintId } } });
+    if (contexts.releaseId) or.push({ links: { some: { releaseId: contexts.releaseId } } });
+    const rows = await this.prisma.journalEntry.findMany({
+      where: { workspaceId: auth.workspaceId, OR: or },
+      include: entryInclude,
+      orderBy: [{ occurredOn: "desc" }, { createdAt: "desc" }],
+      take: REPORT_JOURNAL_LIMIT,
+    });
+    return rows.map(toEntryDto);
   }
 
   async get(auth: AuthContext, id: string): Promise<JournalEntry> {

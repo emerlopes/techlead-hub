@@ -8,5 +8,6 @@ import { ExecutionPlansController, WorkDependenciesController } from "./planning
 @Module({
   controllers: [ExecutionPlansController, WorkDependenciesController],
   providers: [ExecutionPlansService, DependenciesService, PlanProjectionService],
+  exports: [DependenciesService],
 })
 export class PlanningModule {}

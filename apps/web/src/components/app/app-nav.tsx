@@ -1,20 +1,29 @@
 "use client";
 
-import { Building2, Gauge, House, ListOrdered, ListTodo, Settings, Truck } from "lucide-react";
+import { Building2, FileText, Gauge, House, ListOrdered, ListTodo, Settings, Truck } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { capacitySection, deliverySection, isActiveSection, type NavSection, organizationSection, planningSection } from "@/lib/navigation";
+import {
+  capacitySection,
+  deliverySection,
+  isActiveSection,
+  type NavSection,
+  organizationSection,
+  planningSection,
+  reportsSection,
+} from "@/lib/navigation";
 import { cn } from "@/lib/utils";
 
 const sectionActive = (pathname: string, section: NavSection) => section.items.some((i) => isActiveSection(pathname, i.href));
 
-/** Áreas principais; Entregas, Capacidade, Planejamento e Organização têm sub-navegação própria (`SectionNav`). */
+/** Áreas principais; Entregas, Capacidade, Planejamento, Relatórios e Organização têm sub-navegação própria (`SectionNav`). */
 const items = [
   { href: "/", label: "Início", icon: House, active: (p: string) => p === "/" },
   { href: "/tasks", label: "Atividades", icon: ListTodo, active: (p: string) => isActiveSection(p, "/tasks") },
   { href: "/work-items", label: "Entregas", icon: Truck, active: (p: string) => sectionActive(p, deliverySection) },
   { href: "/capacity", label: "Capacidade", icon: Gauge, active: (p: string) => sectionActive(p, capacitySection) },
   { href: "/plans", label: "Planejamento", icon: ListOrdered, active: (p: string) => sectionActive(p, planningSection) },
+  { href: "/reports", label: "Relatórios", icon: FileText, active: (p: string) => sectionActive(p, reportsSection) },
   { href: "/teams", label: "Organização", icon: Building2, active: (p: string) => sectionActive(p, organizationSection) },
   { href: "/settings", label: "Configurações", icon: Settings, active: (p: string) => isActiveSection(p, "/settings") },
 ] as const;

@@ -6,11 +6,23 @@ import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle }
 import { formatBusinessDate } from "@/lib/format";
 
 /** Últimos acontecimentos de um contexto (sprint, release, item) com atalho para a linha do tempo (§17.3). */
-export function JournalCard({ entries, href, description }: { entries: Entry[]; href: string; description?: string }) {
+export function JournalCard({
+  entries,
+  href,
+  description,
+  title = "Diário",
+  empty = "Nenhum acontecimento registrado.",
+}: {
+  entries: Entry[];
+  href: string;
+  description?: string;
+  title?: string;
+  empty?: string;
+}) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Diário</CardTitle>
+        <CardTitle>{title}</CardTitle>
         {description && <CardDescription>{description}</CardDescription>}
         <CardAction>
           <Link href={href} className={buttonVariants({ variant: "ghost", size: "sm" })}>
@@ -20,7 +32,7 @@ export function JournalCard({ entries, href, description }: { entries: Entry[]; 
       </CardHeader>
       <CardContent>
         {entries.length === 0 ? (
-          <p className="text-xs text-muted-foreground">Nenhum acontecimento registrado.</p>
+          <p className="text-xs text-muted-foreground">{empty}</p>
         ) : (
           <ol>
             {entries.map((entry, index) => (

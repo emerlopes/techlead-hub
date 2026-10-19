@@ -7,6 +7,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/misc";
 import { loadApi, withQuery } from "@/lib/api/server";
+import { atRequestTime } from "@/lib/today.server";
 
 /**
  * Entregas abertas de um time, projeto ou pessoa (§14.2). Carrega os próprios dados: renderize
@@ -21,6 +22,7 @@ export async function DeliveriesCard({
   description: string;
   moreHref?: string;
 }) {
+  await atRequestTime();
   const result = await loadApi(
     withQuery("/work-items", { ...filter, pageSize: String(PAGE_SIZE_MAX) }),
     paginatedSchema(workItemSchema),

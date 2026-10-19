@@ -3364,6 +3364,10 @@ O sistema sugere ajustes e os aplica somente após aprovação válida.
 
 ## ETAPA 9 — RELATÓRIOS E OPERAÇÃO
 
+> **Situação da implementação:** dividida em 9a (relatórios e rascunhos — implementada) e 9b (operação —
+> pendente, planejada para depois da Etapa 6). Decisões e pendências rastreáveis (`PEND-9-01` a
+> `PEND-9-09`) em `docs/architecture/relatorios-operacao.md`.
+
 ### Objetivo
 
 Consolidar o uso e preparar a aplicação para operação contínua.

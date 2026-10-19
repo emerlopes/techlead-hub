@@ -128,6 +128,25 @@ export class RisksService {
       );
   }
 
+  /**
+   * Riscos ligados diretamente aos contextos ou aos itens informados, em qualquer situação — usado pelos
+   * relatórios (§31), que recortam por período ou situação.
+   */
+  async listForContexts(
+    auth: AuthContext,
+    contexts: { sprintId?: string; releaseId?: string; workItemIds: string[] },
+  ): Promise<Risk[]> {
+    const or: Prisma.RiskLinkWhereInput[] = [{ workItemId: { in: contexts.workItemIds } }];
+    if (contexts.sprintId) or.push({ sprintId: contexts.sprintId });
+    if (contexts.releaseId) or.push({ releaseId: contexts.releaseId });
+    const rows = await this.prisma.risk.findMany({
+      where: { workspaceId: auth.workspaceId, links: { some: { OR: or } } },
+      include: riskInclude,
+      orderBy: { identifiedAt: "asc" },
+    });
+    return rows.map(toRiskDto).sort((a, b) => SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity]);
+  }
+
   async get(auth: AuthContext, id: string): Promise<RiskDetail> {
     const [row, history] = await Promise.all([
       this.prisma.risk.findFirst({ where: { id, workspaceId: auth.workspaceId }, include: riskInclude }),

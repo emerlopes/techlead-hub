@@ -1,5 +1,5 @@
 import { capacityOverviewSchema } from "@tlh/shared-contracts";
-import { CalendarOff, Clock, Gauge, Hourglass, Plus, TrendingUp, Users } from "lucide-react";
+import { CalendarOff, Plus, Users } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -9,11 +9,11 @@ import { PageHeader } from "@/components/app/page-header";
 import { AbsenceItem } from "@/components/domain/absence-item";
 import { ContextLoadView } from "@/components/domain/context-load";
 import { ContextChip, DomainTag } from "@/components/domain/domain-tag";
-import { Kpi } from "@/components/domain/kpi";
 import { Alert } from "@/components/ui/alert";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { CapacityTotals } from "@/features/capacity/capacity-totals";
 import { DeveloperCapacityRow } from "@/features/capacity/developer-capacity-row";
 import { PeriodFilter } from "@/features/capacity/period-filter";
 import { readPeriodParams } from "@/features/capacity/period";
@@ -21,7 +21,6 @@ import { ContextBar, ContextBarSkeleton } from "@/features/context/context-bar";
 import { readContext } from "@/features/context/context.server";
 import { requestToday } from "@/lib/today.server";
 import { loadApi, requireMe, withQuery } from "@/lib/api/server";
-import { formatBusinessRange, formatHours } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Capacidade · Tech Lead Hub" };
 
@@ -78,19 +77,7 @@ async function Overview({ searchParams }: Pick<PageProps<"/capacity">, "searchPa
         </Alert>
       )}
 
-      <section aria-label="Totais do período" className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-        <Kpi label="Nominal" value={formatHours(totals.nominalHours)} icon={Clock} hint={formatBusinessRange(period.from, period.to)} />
-        <Kpi label="Efetiva" value={formatHours(totals.effectiveHours)} icon={Gauge} tone="capacity" hint={`${formatHours(totals.unavailableHours)} indisponíveis`} />
-        <Kpi label="Alocada" value={formatHours(totals.allocatedHours)} icon={Users} tone="capacity" />
-        <Kpi label="Livre" value={formatHours(totals.freeHours)} icon={Hourglass} tone={totals.freeHours > 0 ? "attention" : "neutral"} hint="Capacidade não alocada" />
-        <Kpi
-          label="Sobrecarga"
-          value={formatHours(totals.overAllocatedHours)}
-          icon={TrendingUp}
-          tone={totals.overAllocatedHours > 0 ? "danger" : "neutral"}
-          hint={`${conflicts} pessoa(s) com inconsistência`}
-        />
-      </section>
+      <CapacityTotals totals={totals} period={period} conflicts={conflicts} />
 
       <div className="grid items-start gap-4 lg:grid-cols-2">
         <Card className="lg:row-span-2">

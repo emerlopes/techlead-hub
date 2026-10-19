@@ -12,7 +12,7 @@ import { isActiveSection, type NavSection } from "@/lib/navigation";
 export function SectionNav({ section }: { section: NavSection }) {
   const pathname = usePathname();
   return (
-    <nav aria-label={section.label} className="-mt-2 border-b border-border">
+    <nav aria-label={section.label} className="-mt-2 border-b border-border print:hidden">
       <ul className="-mb-px flex gap-1 overflow-x-auto [scrollbar-width:none]">
         {section.items.map(({ href, label, exact }) => {
           const active = isActiveSection(pathname, href, exact);

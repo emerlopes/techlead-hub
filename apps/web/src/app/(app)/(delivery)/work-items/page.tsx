@@ -25,6 +25,7 @@ import { readContext } from "@/features/context/context.server";
 import { loadApi } from "@/lib/api/server";
 import { healthStatus } from "@/lib/design-system/status";
 import { flatParams, withQuery } from "@/lib/search-params";
+import { atRequestTime } from "@/lib/today.server";
 
 export const metadata: Metadata = { title: "Entregas · Tech Lead Hub" };
 
@@ -62,6 +63,7 @@ async function ContextSection() {
 }
 
 async function WorkItemList({ searchParams }: Pick<PageProps<"/work-items">, "searchParams">) {
+  await atRequestTime();
   const params = flatParams(await searchParams);
   const context = await readContext();
   const parsed = workItemListQuerySchema.safeParse({ ...params, ...context });

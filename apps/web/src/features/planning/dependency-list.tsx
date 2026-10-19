@@ -24,9 +24,9 @@ function ItemLink({ item }: { item: NonNullable<WorkDependency["predecessor"]> }
 
 /**
  * Dependências com tipo e situação no cálculo (§24.4). A externa pode ser liberada (§24.5); remover
- * pede confirmação e fica na auditoria.
+ * pede confirmação e fica na auditoria. `readOnly` esconde as ações (relatórios).
  */
-export function DependencyList({ dependencies }: { dependencies: readonly WorkDependency[] }) {
+export function DependencyList({ dependencies, readOnly = false }: { dependencies: readonly WorkDependency[]; readOnly?: boolean }) {
   const action = useApiAction();
   return (
     <div className="flex flex-col gap-2">
@@ -59,29 +59,31 @@ export function DependencyList({ dependencies }: { dependencies: readonly WorkDe
                 </span>
               )}
               {d.notes && <span>· {d.notes}</span>}
-              <span className="ml-auto flex flex-wrap gap-1.5">
-                {d.dependencyType === "EXTERNAL" && d.status === "OPEN" && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={action.pending}
-                    onClick={() => action.run(() => apiMutation("POST", `/work-dependencies/${d.id}/release`, { version: d.version }))}
+              {!readOnly && (
+                <span className="ml-auto flex flex-wrap gap-1.5">
+                  {d.dependencyType === "EXTERNAL" && d.status === "OPEN" && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={action.pending}
+                      onClick={() => action.run(() => apiMutation("POST", `/work-dependencies/${d.id}/release`, { version: d.version }))}
+                    >
+                      <LockOpen aria-hidden />
+                      Liberar hoje
+                    </Button>
+                  )}
+                  <ConfirmButton
+                    question="Remover a dependência?"
+                    confirmLabel="Remover"
+                    pending={action.pending}
+                    variant="ghost"
+                    onConfirm={() => action.run(() => apiMutation("DELETE", `/work-dependencies/${d.id}`))}
+                    aria-label="Remover dependência"
                   >
-                    <LockOpen aria-hidden />
-                    Liberar hoje
-                  </Button>
-                )}
-                <ConfirmButton
-                  question="Remover a dependência?"
-                  confirmLabel="Remover"
-                  pending={action.pending}
-                  variant="ghost"
-                  onConfirm={() => action.run(() => apiMutation("DELETE", `/work-dependencies/${d.id}`))}
-                  aria-label="Remover dependência"
-                >
-                  <Trash2 aria-hidden />
-                </ConfirmButton>
-              </span>
+                    <Trash2 aria-hidden />
+                  </ConfirmButton>
+                </span>
+              )}
             </div>
           </li>
         ))}

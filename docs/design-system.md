@@ -160,6 +160,9 @@ Fonte única para rótulo pt-BR, tom e ícone de cada enum da especificação. S
 | `planIssueType` | §22.5, §24 | Sem capacidade no contexto · Conflito de alocação · Sem estimativa · Bloqueado · Dependência sem previsão · Ordem contra dependência · Outro responsável · Não cabe no período |
 | `dependencyType` | §24.3 | Término → início · Início → início · Término → término · Externa · Informativa |
 | `dependencyState` | §24.4 | Liberada · Pendente · Sem previsão (indeterminado) · Só registro |
+| `scopeChangeKind` | §11.5, §31.1 | Adicionado · Veio de outra sprint · Retirado · Foi para outra sprint |
+| `reportDraftType` | §31.4, §31.5 | Rascunho para demo · Rascunho para retrospectiva (rótulos de `draftTypeLabels`, compartilhados com o Markdown) |
+| `draftSectionState` | §31.5 | Nada registrado · Não gerado (ambos indeterminados: a seção fica vazia, nunca preenchida por inferência) |
 
 A confiança de estimativas (§21.4) reaproveita `confidence` (Alta · Média · Baixa) via `ConfidenceMeter`.
 
@@ -199,13 +202,14 @@ Novos enums: adicionar ao arquivo com `satisfies StatusMap<string>`; marcar `ind
 | Componente | Notas |
 | --- | --- |
 | `Brand` | Marca + link para o início. `compact` oculta o nome no mobile (fica para leitores de tela). |
-| `AppNav` | Áreas principais (Início · Atividades · Entregas · Capacidade · Planejamento · Organização · Configurações); item ativo com `aria-current="page"`; rótulos viram `sr-only` no mobile. |
-| `SectionNav` | Sub-navegação de uma área (`lib/navigation.ts`: `deliverySection`, `capacitySection`, `planningSection`, `organizationSection`), renderizada pelo layout do route group `(delivery)`/`(capacity)`/`(planning)`/`(organization)`. Itens com `exact: true` (raiz da área, ex.: `/capacity`) só ficam ativos na própria rota. Abas sublinhadas, rolagem horizontal própria no mobile. Usa `usePathname`: dentro de `<Suspense>`. |
+| `AppNav` | Áreas principais (Início · Atividades · Entregas · Capacidade · Planejamento · Relatórios · Organização · Configurações); item ativo com `aria-current="page"`; rótulos viram `sr-only` no mobile. |
+| `SectionNav` | Sub-navegação de uma área (`lib/navigation.ts`: `deliverySection`, `capacitySection`, `planningSection`, `reportsSection`, `organizationSection`), renderizada pelo layout do route group `(delivery)`/`(capacity)`/`(planning)`/`(reports)`/`(organization)`. Some na impressão (`print:hidden`). Itens com `exact: true` (raiz da área, ex.: `/capacity`) só ficam ativos na própria rota. Abas sublinhadas, rolagem horizontal própria no mobile. Usa `usePathname`: dentro de `<Suspense>`. |
 | `PageHeader` | Título de página (`text-xl`), eyebrow opcional (texto ou link de volta), descrição e `actions` à direita (quebram abaixo no mobile). |
 | `ListSkeleton`, `DetailSkeleton` | Carregamento padrão de listagens e páginas de detalhe. |
 | `ApiUnavailable` | Estado de falha padrão quando a API não responde: `Alert tone="danger"` + `RetryButton`. |
 | `FormError` | Erro geral de formulário a partir de `ApiError`. Bloqueio (`TOO_MANY_ATTEMPTS`) e conflito de versão (`CONFLICT`) usam `warning`; demais, `danger`. |
 | `DeleteButton` | Exclusão definitiva (§35.9): `ConfirmButton` “Excluir” com pergunta que diz o que sai junto, `DELETE` no recurso e `redirectTo` para a listagem (ou `onDeleted`, para edição no lugar). Exibe o `ApiError` com `FormError`. |
+| `PrintButton` | Imprime a página (ou salva em PDF pelo navegador) — exportação dos relatórios (§34.17). O cabeçalho do shell, a `SectionNav` e o próprio botão usam `print:hidden`; cartões de relatório usam `break-inside-avoid`. |
 | `RetryButton` | `router.refresh()` com estado de carregamento; `label` customizável (“Recarregar” em conflitos). |
 | `PasswordInput` (`features/identity`) | `Input` com botão de mostrar/ocultar (`aria-pressed`). |
 
@@ -231,6 +235,7 @@ Server Components leem a API com `loadApi(path, schema)` (`lib/api/server.ts`): 
 - **Capacidade (§18–§21):** sem jornada a capacidade é desconhecida, nunca zero (`capacityIssueType.NO_SCHEDULE`, hachura); conflitos de alocação são sinalizados, não bloqueados (§20.5); período na URL (`?from&to`) com `PeriodFilter` (atalhos de 2/4/12 semanas, horizonte máximo §25.6). Indicadores de capacidade são de planejamento — nunca de desempenho (§10.4); evite rankings de pessoas.
 - **Planejamento de execução (§22–§24):** a fila é editada localmente e salva inteira (“Salvar fila”, com a versão lida), validada no navegador pelas mesmas regras da API (`planShapeIssues`, CA-014). A projeção é marcada como “não é previsão” até o motor da Etapa 6; itens sem estimativa, bloqueados ou com dependência sem previsão nunca recebem datas (indeterminado, CA-018). Redistribuição entre contextos mostra aviso explícito (§23.4).
 - **Percentuais em formulários:** o usuário digita 0–100 (“50” ou “50,5”); a API recebe a fração 0–1 (§35.7). Horas aceitam vírgula (`hoursOrNull`).
+- **Relatórios (§31):** derivados na leitura, com “Gerado em …” abaixo do cabeçalho; cada seção mostra a contagem no título e um texto de vazio explícito. Rascunhos de demo/retrospectiva são gerados sob demanda (`DraftGenerator`), exibem seções vazias com `draftSectionState` e exportam Markdown (copiar/baixar). Previsão de release sempre com a origem (`DateDelta source`) e “Sem previsão” quando não houver (§3.4). Listas reaproveitadas em modo leitura: `RiskListCard` sem `newHref` (mostra `riskStatus` quando encerrado), `JournalCard` com `title`/`empty`, `DependencyList readOnly`.
 - **Dashboard (§5):** KPIs no topo → foco principal + capacidade à esquerda → entregas críticas à direita. Ver seção “Composição” no showcase.
 
 ## 10. Acessibilidade
