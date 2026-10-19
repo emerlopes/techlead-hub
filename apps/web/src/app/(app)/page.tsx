@@ -29,6 +29,7 @@ import { DeliverySections } from "@/features/dashboard/delivery-sections";
 import { readContext } from "@/features/context/context.server";
 import { loadApi, requireMe, withQuery } from "@/lib/api/server";
 import { formatBusinessDate, formatBusinessDateLong } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 export default function HomePage() {
   return (
@@ -103,8 +104,10 @@ function DashboardView({ data }: { data: Dashboard }) {
         />
       </div>
 
-      <div className="grid items-start gap-4 lg:grid-cols-2">
-        <div className="flex flex-col gap-4">
+      {/* Grade por linhas (não colunas soltas): cards lado a lado assumem a altura do maior.
+          Sem "Também em foco", o foco ocupa duas linhas para não sobrar buraco na grade. */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <div className={cn("grid", others.length === 0 && "lg:row-span-2")}>
           {primary ? (
             <FocusCard
               title={primary.task.title}
@@ -128,22 +131,19 @@ function DashboardView({ data }: { data: Dashboard }) {
               }
             />
           )}
-          {others.length > 0 && (
-            <TaskCard title="Também em foco" description="Ordem manual da fila de foco (§6.6)." tasks={others.map((i) => i.task)} />
-          )}
-          <TaskCard
-            title="Bloqueadas"
-            description="Pedem remoção de impedimento, não replanejamento."
-            tasks={personal.blocked}
-            empty="Nenhuma atividade bloqueada."
-          />
         </div>
-
-        <div className="flex flex-col gap-4">
-          <TaskCard title="Atrasadas" description="Concluídas nunca aparecem aqui (RN-001)." tasks={personal.overdue} empty="Nada atrasado." />
-          <TaskCard title="Para hoje" tasks={personal.dueToday} empty="Nada vence hoje." />
-          <TaskCard title="Próximos vencimentos" description="Nos próximos 7 dias." tasks={personal.upcoming} empty="Nenhum vencimento próximo." />
-        </div>
+        <TaskCard title="Atrasadas" description="Concluídas nunca aparecem aqui (RN-001)." tasks={personal.overdue} empty="Nada atrasado." />
+        {others.length > 0 && (
+          <TaskCard title="Também em foco" description="Ordem manual da fila de foco (§6.6)." tasks={others.map((i) => i.task)} />
+        )}
+        <TaskCard title="Para hoje" tasks={personal.dueToday} empty="Nada vence hoje." />
+        <TaskCard
+          title="Bloqueadas"
+          description="Pedem remoção de impedimento, não replanejamento."
+          tasks={personal.blocked}
+          empty="Nenhuma atividade bloqueada."
+        />
+        <TaskCard title="Próximos vencimentos" description="Nos próximos 7 dias." tasks={personal.upcoming} empty="Nenhum vencimento próximo." />
       </div>
 
       <DeliverySections data={data} />

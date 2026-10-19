@@ -69,7 +69,7 @@ export function DeliverySections({ data }: { data: Dashboard }) {
         </CardContent>
       </Card>
 
-      <div className="grid items-start gap-4 lg:grid-cols-2">
+      <div className="grid gap-4">
         <Card>
           <CardHeader>
             <CardTitle>Sprints ativas</CardTitle>
