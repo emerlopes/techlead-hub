@@ -91,4 +91,18 @@ export class ExternalSourcesService {
       });
     return this.list(auth);
   }
+
+  /** Exclusão definitiva (§35.9). Itens externos dependem da origem (FK `Restrict`): só sai sem itens. */
+  async remove(auth: AuthContext, id: string): Promise<void> {
+    await this.audit.deleteEntity(
+      { entityType: "external_source", entityId: id, workspaceId: auth.workspaceId, actorUserId: auth.userId, label: "Origem" },
+      async (tx) => {
+        const items = await tx.externalWorkItem.count({ where: { sourceId: id, workspaceId: auth.workspaceId } });
+        if (items > 0) {
+          throw new ApiException(409, "CONFLICT", `A origem tem ${items} ${items === 1 ? "item" : "itens"}. Exclua ou mova os itens antes.`);
+        }
+        return tx.externalSource.deleteMany({ where: { id, workspaceId: auth.workspaceId } });
+      },
+    );
+  }
 }

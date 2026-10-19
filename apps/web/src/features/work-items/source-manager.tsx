@@ -4,6 +4,7 @@ import { createExternalSourceSchema, type ExternalSource, updateExternalSourceSc
 import { Pencil, Plus, Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { DeleteButton } from "@/components/app/delete-button";
 import { FormError } from "@/components/app/form-error";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -78,6 +79,13 @@ function SourceRow({ source }: { source: ExternalSource }) {
           </div>
           <FormError error={form.error} />
         </form>
+        <div className="mt-2 flex justify-end">
+          {source.workItemCount > 0 ? (
+            <p className="text-xs text-muted-foreground">Para excluir, remova antes {source.workItemCount === 1 ? "o item" : `os ${source.workItemCount} itens`} desta origem.</p>
+          ) : (
+            <DeleteButton path={`/external-sources/${source.id}`} question="Excluir a origem definitivamente?" onDeleted={router.refresh} />
+          )}
+        </div>
       </li>
     );
   }

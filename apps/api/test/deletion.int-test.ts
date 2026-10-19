@@ -87,4 +87,16 @@ describe("Exclusão definitiva (integração, §35.9)", () => {
     await api.get(`/tasks/${task.id}`).expect(404);
     await api.get(`/projects/${chk.id}`).expect(200);
   });
+
+  it("origem só é excluída sem itens", async () => {
+    const item = await createItem();
+    const blocked = await api.delete(`/external-sources/${jira.id}`).expect(409);
+    expect(blocked.body.code).toBe("CONFLICT");
+
+    await api.delete(`/work-items/${item.id}`).expect(204);
+    await api.delete(`/external-sources/${jira.id}`).expect(204);
+    expect((await api.get("/external-sources").expect(200)).body).toEqual([]);
+    expect(await prisma.auditEvent.count({ where: { action: "external_source.deleted", entityId: jira.id } })).toBe(1);
+    await api.delete(`/external-sources/${jira.id}`).expect(404);
+  });
 });

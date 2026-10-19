@@ -165,4 +165,10 @@ export class ExternalSourcesController {
   ): Promise<ExternalSource[]> {
     return this.sources.update(auth, id, body);
   }
+
+  @Delete(":id")
+  @HttpCode(204)
+  remove(@CurrentAuth() auth: AuthContext, @Param("id", UuidParamPipe) id: string): Promise<void> {
+    return this.sources.remove(auth, id);
+  }
 }

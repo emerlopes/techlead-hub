@@ -15,7 +15,8 @@ export type DeletableEntity =
   | "release"
   | "risk"
   | "journal_entry"
-  | "execution_plan";
+  | "execution_plan"
+  | "external_source";
 
 export type AuditAction =
   | `${DeletableEntity}.deleted`

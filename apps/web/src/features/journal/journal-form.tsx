@@ -72,9 +72,9 @@ export function JournalForm({
   const hasPreselection = Object.values(linked).some((ids) => ids && ids.length > 0);
 
   return (
-    <form key={entry?.version ?? round} onSubmit={form.onSubmit} noValidate className="flex flex-col gap-3">
+    <form key={entry?.version ?? round} onSubmit={form.onSubmit} noValidate className="@container flex flex-col gap-3">
       <FormError error={form.error} action={form.error?.code === "CONFLICT" && entry ? <RetryButton label="Recarregar" /> : undefined} />
-      <div className="grid gap-3 sm:grid-cols-[14rem_1fr_10rem]">
+      <div className="grid gap-3 @md:grid-cols-[minmax(0,1fr)_10rem]">
         <Field label="Categoria" htmlFor={`${prefix}-category`} required error={err.category}>
           <Select id={`${prefix}-category`} name="category" defaultValue={entry?.category ?? ""} aria-invalid={Boolean(err.category)}>
             <option value="" disabled>
@@ -87,7 +87,10 @@ export function JournalForm({
             ))}
           </Select>
         </Field>
-        <Field label="O que aconteceu" htmlFor={`${prefix}-description`} required error={err.description} className="sm:row-span-2">
+        <Field label="Data" htmlFor={`${prefix}-date`} error={err.occurredOn} hint={entry ? undefined : "Vazio = hoje."}>
+          <Input id={`${prefix}-date`} name="occurredOn" type="date" defaultValue={entry?.occurredOn ?? ""} />
+        </Field>
+        <Field label="O que aconteceu" htmlFor={`${prefix}-description`} required error={err.description} className="@md:col-span-2">
           <Textarea
             id={`${prefix}-description`}
             name="description"
@@ -96,15 +99,12 @@ export function JournalForm({
             aria-invalid={Boolean(err.description)}
           />
         </Field>
-        <Field label="Data" htmlFor={`${prefix}-date`} error={err.occurredOn} hint={entry ? undefined : "Vazio = hoje."}>
-          <Input id={`${prefix}-date`} name="occurredOn" type="date" defaultValue={entry?.occurredOn ?? ""} />
-        </Field>
       </div>
       <details open={hasPreselection || undefined} className="group">
         <summary className="pressable w-fit cursor-pointer rounded text-xs font-medium text-muted-foreground hover:text-foreground">
           Vincular contextos
         </summary>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-3 grid gap-3 @md:grid-cols-2 @3xl:grid-cols-3">
           {kinds.map((kind) => (
             <CheckboxGroup
               key={kind}

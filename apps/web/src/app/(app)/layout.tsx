@@ -9,7 +9,7 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
   return (
     <div className="flex min-h-full flex-1 flex-col bg-background">
       <header className="sticky top-0 z-10 border-b border-border bg-surface">
-        <div className="mx-auto flex h-14 w-full max-w-6xl items-center gap-2 px-4 sm:gap-3">
+        <div className="flex h-14 w-full items-center gap-2 px-4 sm:gap-3 sm:px-6">
           <Brand compact />
           {/* usePathname suspende em rotas com parâmetros dinâmicos (Cache Components). */}
           <Suspense fallback={<div className="flex-1" />}>
