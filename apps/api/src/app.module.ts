@@ -13,6 +13,7 @@ import { JournalModule } from "./modules/journal/journal.module";
 import { PlanningModule } from "./modules/planning/planning.module";
 import { ProjectsModule } from "./modules/projects/projects.module";
 import { ReleasesModule } from "./modules/releases/releases.module";
+import { ReportsModule } from "./modules/reports/reports.module";
 import { RisksModule } from "./modules/risks/risks.module";
 import { SprintsModule } from "./modules/sprints/sprints.module";
 import { TasksModule } from "./modules/tasks/tasks.module";
@@ -38,6 +39,7 @@ import { WorkspaceModule } from "./modules/workspace/workspace.module";
     JournalModule,
     CapacityModule,
     PlanningModule,
+    ReportsModule,
     DashboardModule,
     HealthModule,
   ],

@@ -1,4 +1,5 @@
 import { journalEntrySchema, paginatedSchema, projectSchema, releaseDetailSchema, riskSchema } from "@tlh/shared-contracts";
+import { FileText } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -14,6 +15,7 @@ import { HistoryList } from "@/components/domain/history-list";
 import { StatusBadge } from "@/components/domain/status-badge";
 import { WorkItemRow } from "@/components/domain/work-item-row";
 import { Alert } from "@/components/ui/alert";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { JournalCard } from "@/features/journal/journal-card";
@@ -76,6 +78,10 @@ async function ReleaseView({ params, searchParams }: PageProps<"/releases/[id]">
         description={r.description ?? undefined}
         actions={
           <>
+            <Link href={`/reports/releases/${r.id}`} className={buttonVariants({ variant: "outline" })}>
+              <FileText aria-hidden />
+              Relatório
+            </Link>
             <ReleaseActions release={r} />
             <DeleteButton path={`/releases/${r.id}`} redirectTo="/releases" question="Excluir a release definitivamente? Marcos e escopo saem junto; as sprints ficam sem release." />
           </>

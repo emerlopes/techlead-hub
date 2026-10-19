@@ -94,7 +94,7 @@ O `--build` reconstrói a aplicação, e o serviço `migrate` atualiza o banco a
 
 ## 6. Backup dos dados
 
-Ainda **não existe backup automático**. Faça um de vez em quando, por exemplo uma vez por semana, com a aplicação ligada:
+Ainda **não existe backup automático** (pendência `PEND-9-03` em `docs/architecture/relatorios-operacao.md`). Faça um de vez em quando, por exemplo uma vez por semana, com a aplicação ligada:
 
 ```bash
 docker compose exec -T postgres pg_dump -U tech_lead_hub tech_lead_hub > ~/backup-tlh-$(date +%F).sql
@@ -104,7 +104,7 @@ Isso cria um arquivo como `~/backup-tlh-2026-10-19.sql` na sua pasta pessoal. Gu
 
 ### Restaurar um backup
 
-Só faça isso em um banco vazio, como em uma instalação nova ou depois de apagar os dados de propósito:
+Só faça isso em um banco vazio, como em uma instalação nova ou depois de apagar os dados de propósito. O roteiro completo de recuperação ainda está pendente (`PEND-9-04`):
 
 ```bash
 docker compose exec -T postgres psql -U tech_lead_hub tech_lead_hub < ~/backup-tlh-2026-10-19.sql

@@ -41,6 +41,15 @@ export const planningSection: NavSection = {
   ],
 };
 
+/** Relatórios de sprint, release e capacidade e rascunhos de demo e retrospectiva (Etapa 9, §31). */
+export const reportsSection: NavSection = {
+  label: "Relatórios",
+  items: [
+    { href: "/reports", label: "Sprints e releases", exact: true },
+    { href: "/reports/capacity", label: "Capacidade" },
+  ],
+};
+
 export const organizationSection: NavSection = {
   label: "Organização",
   items: [

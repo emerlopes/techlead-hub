@@ -46,6 +46,16 @@ export class DependenciesService {
     return query.scope === "open" ? list.filter((d) => !isResolvedDependency(d)) : list;
   }
 
+  /** Dependências em que um dos itens é o sucessor — o que eles esperam (relatório de release, §31.2). */
+  async listForSuccessors(auth: AuthContext, workItemIds: string[]): Promise<WorkDependency[]> {
+    const rows = await this.prisma.workDependency.findMany({
+      where: { workspaceId: auth.workspaceId, successorId: { in: workItemIds } },
+      include: dependencyInclude,
+      orderBy: [{ successor: { externalKey: "asc" } }, { createdAt: "asc" }],
+    });
+    return rows.map(toDependencyDto);
+  }
+
   async get(auth: AuthContext, id: string): Promise<WorkDependency> {
     const row = await this.prisma.workDependency.findFirst({ where: { id, workspaceId: auth.workspaceId }, include: dependencyInclude });
     if (!row) throw notFound(ENTITY);

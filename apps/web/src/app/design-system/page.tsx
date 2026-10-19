@@ -70,6 +70,7 @@ import { TaskItem } from "@/components/domain/task-item";
 import { WorkItemRow } from "@/components/domain/work-item-row";
 
 import { ApiUnavailable } from "@/components/app/api-unavailable";
+import { PrintButton } from "@/components/app/print-button";
 import { Brand } from "@/components/app/brand";
 import { FormError } from "@/components/app/form-error";
 import { PageHeader } from "@/components/app/page-header";
@@ -770,6 +771,9 @@ function DomainStatus() {
         <StatusGroup title="Sinalização do plano" spec="§22.5 · §24" map={status.planIssueType} />
         <StatusGroup title="Tipo de dependência" spec="§24.3" map={status.dependencyType} />
         <StatusGroup title="Dependência no cálculo" spec="§24.4" map={status.dependencyState} />
+        <StatusGroup title="Alteração de escopo" spec="§11.5 · §31.1" map={status.scopeChangeKind} />
+        <StatusGroup title="Rascunho" spec="§31.4 · §31.5" map={status.reportDraftType} />
+        <StatusGroup title="Seção de rascunho vazia" spec="§31.5" map={status.draftSectionState} />
       </div>
       <Specimen title="Variantes de badge" note="subtle (padrão) · outline · solid · dot">
         <StatusBadge meta={status.healthStatus.AT_RISK} />
@@ -1230,6 +1234,9 @@ function AppShell() {
               message: "Muitas tentativas. Tente novamente em 15 min.",
             }}
           />
+        </Specimen>
+        <Specimen title="PrintButton" note="relatórios (§31): imprime ou salva em PDF; shell, SectionNav e ações somem na impressão">
+          <PrintButton />
         </Specimen>
         <Specimen title="ApiUnavailable" note="estado de falha padrão (§58)" className="flex-col items-stretch">
           <ApiUnavailable />

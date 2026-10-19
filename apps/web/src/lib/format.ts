@@ -20,6 +20,13 @@ export function formatBusinessDate(isoDate: string): string {
   return businessDate.format(new Date(`${isoDate}T12:00:00Z`)).replace(".", "");
 }
 
+const businessDateNumeric = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeZone: "UTC" });
+
+/** Data de negócio com ano, para textos copiados para fora do hub: "16/10/2026". */
+export function formatBusinessDateNumeric(isoDate: string): string {
+  return businessDateNumeric.format(new Date(`${isoDate}T12:00:00Z`));
+}
+
 /** "sexta-feira, 16 de outubro". */
 export function formatBusinessDateLong(isoDate: string): string {
   return businessDateLong.format(new Date(`${isoDate}T12:00:00Z`));

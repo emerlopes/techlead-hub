@@ -2,7 +2,7 @@ import Link from "next/link";
 import { StatusBadge } from "@/components/domain/status-badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { blockingLevel, riskSeverity, riskType } from "@/lib/design-system/status";
+import { blockingLevel, riskSeverity, riskStatus, riskType } from "@/lib/design-system/status";
 
 type RiskLine = {
   id: string;
@@ -10,19 +10,36 @@ type RiskLine = {
   type: "RISK" | "IMPEDIMENT";
   severity: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
   blockingLevel: "FULL" | "PARTIAL" | null;
+  /** Informada quando a lista mistura abertos e encerrados (ex.: relatório do período). */
+  status?: "OPEN" | "MONITORING" | "RESOLVED" | "CANCELLED";
 };
 
-/** Riscos e impedimentos abertos de um contexto, com atalho para registrar já vinculado (§16.2). */
-export function RiskListCard({ risks, newHref, empty }: { risks: RiskLine[]; newHref: string; empty: string }) {
+/**
+ * Riscos e impedimentos de um contexto, com atalho para registrar já vinculado (§16.2). Sem `newHref`,
+ * só leitura (relatórios).
+ */
+export function RiskListCard({
+  risks,
+  newHref,
+  empty,
+  title = "Riscos e impedimentos",
+}: {
+  risks: RiskLine[];
+  newHref?: string;
+  empty: string;
+  title?: string;
+}) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Riscos e impedimentos</CardTitle>
-        <CardAction>
-          <Link href={newHref} className={buttonVariants({ variant: "ghost", size: "sm" })}>
-            Registrar
-          </Link>
-        </CardAction>
+        <CardTitle>{title}</CardTitle>
+        {newHref && (
+          <CardAction>
+            <Link href={newHref} className={buttonVariants({ variant: "ghost", size: "sm" })}>
+              Registrar
+            </Link>
+          </CardAction>
+        )}
       </CardHeader>
       <CardContent>
         {risks.length === 0 ? (
@@ -38,6 +55,7 @@ export function RiskListCard({ risks, newHref, empty }: { risks: RiskLine[]; new
                   <StatusBadge meta={riskType[r.type]} size="sm" />
                   <StatusBadge meta={riskSeverity[r.severity]} size="sm" variant="outline" />
                   {r.blockingLevel && <StatusBadge meta={blockingLevel[r.blockingLevel]} size="sm" variant="outline" />}
+                  {r.status && r.status !== "OPEN" && <StatusBadge meta={riskStatus[r.status]} size="sm" variant="dot" />}
                 </span>
               </li>
             ))}
