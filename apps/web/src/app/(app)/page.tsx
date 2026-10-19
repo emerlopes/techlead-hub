@@ -30,6 +30,7 @@ import { readContext } from "@/features/context/context.server";
 import { loadApi, requireMe, withQuery } from "@/lib/api/server";
 import { formatBusinessDate, formatBusinessDateLong } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { atRequestTime } from "@/lib/today.server";
 
 export default function HomePage() {
   return (
@@ -40,6 +41,7 @@ export default function HomePage() {
 }
 
 async function Home() {
+  await atRequestTime();
   const context = await readContext();
   const [me, dashboard] = await Promise.all([requireMe(), loadApi(withQuery("/dashboard", context), dashboardSchema)]);
   if (!me.ok) return <ApiUnavailable />;

@@ -3,7 +3,6 @@ import { CircleCheck, Link2, ListChecks, ShieldAlert, SquareArrowOutUpRight } fr
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { connection } from "next/server";
 import { Suspense } from "react";
 import { ApiUnavailable } from "@/components/app/api-unavailable";
 import { DetailSkeleton } from "@/components/app/page-skeletons";
@@ -23,6 +22,7 @@ import { RiskListCard } from "@/features/risks/risk-list-card";
 import { loadApi, requireMe } from "@/lib/api/server";
 import { healthStatus, releaseRequirement, releaseStatus } from "@/lib/design-system/status";
 import { formatBusinessDate, formatDateTime } from "@/lib/format";
+import { atRequestTime } from "@/lib/today.server";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Relatório de release · Tech Lead Hub" };
@@ -36,8 +36,7 @@ export default function ReleaseReportPage({ params }: PageProps<"/reports/releas
 }
 
 async function ReleaseReportView({ params }: Pick<PageProps<"/reports/releases/[id]">, "params">) {
-  // Relatório é sempre do momento da consulta: nada dele entra na pré-renderização (idade das verificações, "gerado em").
-  await connection();
+  await atRequestTime();
   const { id } = await params;
   const [report, me] = await Promise.all([loadApi(`/reports/releases/${id}`, releaseReportSchema), requireMe()]);
   if (!report.ok && report.reason === "not_found") notFound();

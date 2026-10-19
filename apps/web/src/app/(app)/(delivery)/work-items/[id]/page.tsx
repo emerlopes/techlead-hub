@@ -54,6 +54,7 @@ import {
   workItemType,
 } from "@/lib/design-system/status";
 import { formatDateTime, formatHours } from "@/lib/format";
+import { atRequestTime } from "@/lib/today.server";
 
 export const metadata: Metadata = { title: "Item · Tech Lead Hub" };
 
@@ -66,6 +67,7 @@ export default function WorkItemPage({ params }: PageProps<"/work-items/[id]">) 
 }
 
 async function WorkItemView({ params }: Pick<PageProps<"/work-items/[id]">, "params">) {
+  await atRequestTime();
   const { id } = await params;
   const [item, me, sources, projects, teams, developers, sprints, journal, dependencies, plans, openItems] = await Promise.all([
     loadApi(`/work-items/${id}`, workItemDetailSchema),

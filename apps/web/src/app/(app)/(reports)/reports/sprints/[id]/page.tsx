@@ -3,7 +3,6 @@ import { CircleCheck, GitBranch, Hourglass, ListPlus, OctagonX, SquareArrowOutUp
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { connection } from "next/server";
 import { Suspense } from "react";
 import { ApiUnavailable } from "@/components/app/api-unavailable";
 import { DetailSkeleton } from "@/components/app/page-skeletons";
@@ -22,6 +21,7 @@ import { RiskListCard } from "@/features/risks/risk-list-card";
 import { loadApi, requireMe } from "@/lib/api/server";
 import { scopeChangeKind, sprintExitReason, sprintStatus } from "@/lib/design-system/status";
 import { formatBusinessRange, formatDate, formatDateTime } from "@/lib/format";
+import { atRequestTime } from "@/lib/today.server";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Relatório de sprint · Tech Lead Hub" };
@@ -35,8 +35,7 @@ export default function SprintReportPage({ params }: PageProps<"/reports/sprints
 }
 
 async function SprintReportView({ params }: Pick<PageProps<"/reports/sprints/[id]">, "params">) {
-  // Relatório é sempre do momento da consulta: nada dele entra na pré-renderização (idade das verificações, "gerado em").
-  await connection();
+  await atRequestTime();
   const { id } = await params;
   const [report, me] = await Promise.all([loadApi(`/reports/sprints/${id}`, sprintReportSchema), requireMe()]);
   if (!report.ok && report.reason === "not_found") notFound();

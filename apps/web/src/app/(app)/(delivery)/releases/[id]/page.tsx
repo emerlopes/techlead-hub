@@ -30,6 +30,7 @@ import { loadApi, requireMe, withQuery } from "@/lib/api/server";
 import { healthStatus, releaseRequirement, releaseStatus, sprintStatus } from "@/lib/design-system/status";
 import { formatBusinessDate, formatDateTime } from "@/lib/format";
 import { flatParams } from "@/lib/search-params";
+import { atRequestTime } from "@/lib/today.server";
 
 export const metadata: Metadata = { title: "Release · Tech Lead Hub" };
 
@@ -42,6 +43,7 @@ export default function ReleasePage({ params, searchParams }: PageProps<"/releas
 }
 
 async function ReleaseView({ params, searchParams }: PageProps<"/releases/[id]">) {
+  await atRequestTime();
   const { id } = await params;
   // Resultado da geração de sprints, repassado pelo cadastro.
   const query = flatParams(await searchParams);

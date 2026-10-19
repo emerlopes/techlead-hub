@@ -28,6 +28,7 @@ import { loadOpenWorkItems } from "@/lib/api/options";
 import { loadApi, requireMe, withQuery } from "@/lib/api/server";
 import { scopeType, sprintExitReason, sprintStatus } from "@/lib/design-system/status";
 import { formatBusinessDate } from "@/lib/format";
+import { atRequestTime } from "@/lib/today.server";
 
 export const metadata: Metadata = { title: "Sprint · Tech Lead Hub" };
 
@@ -40,6 +41,7 @@ export default function SprintPage({ params }: PageProps<"/sprints/[id]">) {
 }
 
 async function SprintView({ params }: Pick<PageProps<"/sprints/[id]">, "params">) {
+  await atRequestTime();
   const { id } = await params;
   const [sprint, me, teams, candidates, risks, journal] = await Promise.all([
     loadApi(`/sprints/${id}`, sprintDetailSchema),
